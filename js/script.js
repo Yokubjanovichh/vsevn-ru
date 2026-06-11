@@ -3336,7 +3336,7 @@
     // Тексты — тем же SVG-движком; строки таблицы — из RESUME_ROWS.
     // ========================================================================
     const TAB_T = 1920 / 852;     // планшетный макет 852px = 2.2535
-    const PHONE_T = 1920 / 400;   // телефонный макет ~400px (1.8-B) = 4.8
+    const PHONE_T = 1920 / 387;   // телефонный макет 387px (mobile-resume@4x) = 4.962
 
     function isPhoneView() {
         return window.matchMedia && window.matchMedia('(max-width: 489.98px)').matches;
@@ -3395,25 +3395,25 @@
         const K = ph ? PHONE_T : TAB_T;
         view.querySelectorAll('.tnav-text').forEach(function (el) {
             const active = el.closest('.tnav-btn').classList.contains('is-active');
-            renderTabText(el, ph ? 17 : 19, 400, active ? '#FFFFFF' : '#7B786F', null, K);
+            renderTabText(el, ph ? 16 : 19, 400, active ? '#FFFFFF' : '#7B786F', null, K);
         });
-        view.querySelectorAll('.tstat-num').forEach(function (el) { renderTabText(el, ph ? 38 : 47, 300, '#2F3028', null, K); });
+        view.querySelectorAll('.tstat-num').forEach(function (el) { renderTabText(el, ph ? 45 : 47, 300, '#2F3028', null, K); });
         // Figma-спек: 16.5/400 (cap-замер эталона 16.6 ✓), шаг строк 22 (эталон)
-        view.querySelectorAll('.tstat-label').forEach(function (el) { renderTabText(el, 16.5, 400, '#7C7971', ph ? 21 : 22, K); });
+        view.querySelectorAll('.tstat-label').forEach(function (el) { renderTabText(el, ph ? 16 : 16.5, 400, '#7C7971', ph ? 20 : 22, K); });
         const nm = view.querySelector('.tcompany-name');
-        if (nm) renderTabText(nm, ph ? 20 : 34, 300, '#F5F2EA', null, K);
+        if (nm) renderTabText(nm, ph ? 21 : 34, 300, '#F5F2EA', null, K);
         const inn = view.querySelector('.tcompany-inn');
-        if (inn) renderTabText(inn, ph ? 17 : 25, 300, '#AEAEB0', null, K);
+        if (inn) renderTabText(inn, ph ? 19 : 25, 300, '#AEAEB0', null, K);
         const tt = view.querySelector('.ttable-title');
-        if (tt) renderTabText(tt, ph ? 21 : 25, 600, '#0F0800', ph ? 27 : 30.3, K);
+        if (tt) renderTabText(tt, ph ? 22 : 25, 600, '#0F0800', ph ? 24 : 30.3, K);
         const ts = view.querySelector('.ttable-sub');
-        if (ts) renderTabText(ts, ph ? 17 : 22, 300, '#7C7971', ph ? 22 : 25, K);
+        if (ts) renderTabText(ts, ph ? 19 : 22, 300, '#7C7971', ph ? 22.5 : 25, K);
         const thn = view.querySelector('.tth-name');
         if (thn) renderTabText(thn, ph ? 14 : 18.5, 400, '#55534C', null, K);
         const thp = view.querySelector('.tth-phone');
         if (thp) renderTabText(thp, ph ? 14 : 18.5, 400, '#1F76A3', null, K);
         const thv = view.querySelector('.tth-vac');
-        if (thv) renderTabText(thv, ph ? 14 : 18.5, 400, ph ? '#850408' : '#55534C', null, K);
+        if (thv) renderTabText(thv, ph ? 14 : 18.5, 400, ph ? '#820407' : '#55534C', null, K);
 
         const box = document.getElementById('ttableRows');
         if (!box) return;
@@ -3440,7 +3440,7 @@
         }
         box.querySelectorAll('.trow-name').forEach(function (el) { renderTabText(el, ph ? 18 : 21, 300, '#7C7971', null, K); });
         box.querySelectorAll('.trow-phone').forEach(function (el) { renderTabText(el, ph ? 18 : 20, 300, '#1F76A3', null, K); });
-        box.querySelectorAll('.trow-vac').forEach(function (el) { renderTabText(el, ph ? 18 : 21, 300, ph ? '#850408' : '#7C7971', null, K); });
+        box.querySelectorAll('.trow-vac').forEach(function (el) { renderTabText(el, ph ? 18 : 21, 300, ph ? '#820407' : '#7C7971', null, K); });
 
         // переключение планшет<->телефон: перерендер мобильных текстов
         if (!tabViewMediaBound && window.matchMedia) {

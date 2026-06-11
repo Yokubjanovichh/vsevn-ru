@@ -4306,71 +4306,73 @@ a.snav-logo { text-decoration: none; }
 }
 
 /* ============================================================
-   ШАГ 1.8-B: телефон 320–490 (эталоны ref/image7, image1/3;
-   макет ~400px, коэф в dpx = 1920/400 = 4.8). Планшетные правила
-   выше остаются базой, здесь — телефонные переопределения.
+   ШАГ 1.8-B: телефон 320–490 (ФИНАЛЬНЫЙ эталон mobile-resume@4x.jpg
+   1548×4188 = 4×387; коэф в dpx = 1920/387 = 4.962). Планшетные
+   правила выше — база, здесь телефонные переопределения.
    ============================================================ */
 @media (max-width: 489.98px) {
-    .dash-page { padding: calc(38 * var(--dpx, 0.0520833vw)); }
+    .dash-page { padding: calc(64.5 * var(--dpx, 0.0520833vw)) calc(79 * var(--dpx, 0.0520833vw)); }
 
     .dash-card {
-        border-radius: calc(77 * var(--dpx, 0.0520833vw));
-        padding: calc(58 * var(--dpx, 0.0520833vw)) calc(58 * var(--dpx, 0.0520833vw)) calc(96 * var(--dpx, 0.0520833vw));
+        border-radius: calc(79 * var(--dpx, 0.0520833vw));
+        padding: calc(60 * var(--dpx, 0.0520833vw)) calc(55 * var(--dpx, 0.0520833vw)) calc(96 * var(--dpx, 0.0520833vw));
     }
 
-    /* нав-стек 1 колонка; порядок телефона (image7/1/3):
+    /* нав-стек 1 колонка; порядок телефона (эталон):
        Ссылки / Отправленные / Копия email / Журнал */
-    .tnav { flex-direction: column; gap: calc(38 * var(--dpx, 0.0520833vw)); }
+    .tnav { flex-direction: column; gap: calc(60 * var(--dpx, 0.0520833vw)); }
     .tnav-btn {
         flex: 1 1 auto;
         width: 100%;
         min-width: 0;
-        height: calc(360 * var(--dpx, 0.0520833vw));
-        gap: calc(10 * var(--dpx, 0.0520833vw));
-        border-radius: calc(58 * var(--dpx, 0.0520833vw));
+        height: calc(337 * var(--dpx, 0.0520833vw));
+        gap: calc(12 * var(--dpx, 0.0520833vw));
+        border-radius: calc(60 * var(--dpx, 0.0520833vw));
     }
     .tnav-btn[data-tab="email"] { order: 3; }
     .tnav-btn[data-tab="journal"] { order: 4; }
-    .tnav-ico svg { height: calc(125 * var(--dpx, 0.0520833vw)); }
+    .tnav-ico svg { height: calc(109 * var(--dpx, 0.0520833vw)); }
 
-    /* статы — вертикальный стек (image7) */
+    /* статы — 2×2 GRID (эталон: [432|24] / [88%|246]), шаг колонок 185,
+       шаг рядов 86 макет-px */
     .tstats {
-        display: block;
-        margin-top: calc(58 * var(--dpx, 0.0520833vw));
-        padding: calc(77 * var(--dpx, 0.0520833vw)) calc(58 * var(--dpx, 0.0520833vw));
-        border-radius: calc(58 * var(--dpx, 0.0520833vw));
+        display: grid;
+        grid-template-columns: calc(918 * var(--dpx, 0.0520833vw)) minmax(0, 1fr);
+        row-gap: calc(100 * var(--dpx, 0.0520833vw));
+        margin-top: calc(64 * var(--dpx, 0.0520833vw));
+        padding: calc(64 * var(--dpx, 0.0520833vw)) calc(20 * var(--dpx, 0.0520833vw));
+        border-radius: calc(60 * var(--dpx, 0.0520833vw));
     }
-    .tstat { padding-right: 0; margin-top: calc(58 * var(--dpx, 0.0520833vw)); }
-    .tstat:first-child { margin-top: 0; }
+    .tstat { padding-right: 0; }
     .tstat-chip {
-        width: calc(125 * var(--dpx, 0.0520833vw));
-        height: calc(125 * var(--dpx, 0.0520833vw));
-        margin-right: calc(38 * var(--dpx, 0.0520833vw));
-        border-radius: calc(38 * var(--dpx, 0.0520833vw));
+        width: calc(99 * var(--dpx, 0.0520833vw));
+        height: calc(99 * var(--dpx, 0.0520833vw));
+        margin-right: calc(50 * var(--dpx, 0.0520833vw));
+        border-radius: calc(30 * var(--dpx, 0.0520833vw));
     }
-    .tstat-label { margin-top: calc(24 * var(--dpx, 0.0520833vw)); }
+    .tstat-label { margin-top: calc(30 * var(--dpx, 0.0520833vw)); }
 
-    /* бэнд компании БЕЗ лого (эталон image7) */
+    /* бэнд компании БЕЗ лого (эталон), 335×77 макет */
     .tcompany {
         gap: 0;
-        margin-top: calc(58 * var(--dpx, 0.0520833vw));
-        padding: calc(58 * var(--dpx, 0.0520833vw)) calc(77 * var(--dpx, 0.0520833vw));
-        border-radius: calc(58 * var(--dpx, 0.0520833vw));
+        margin-top: calc(60 * var(--dpx, 0.0520833vw));
+        padding: calc(89 * var(--dpx, 0.0520833vw)) calc(149 * var(--dpx, 0.0520833vw));
+        border-radius: calc(60 * var(--dpx, 0.0520833vw));
     }
     .tcompany-logo { display: none; }
-    .tcompany-body { gap: calc(19 * var(--dpx, 0.0520833vw)); }
+    .tcompany-body { gap: calc(40 * var(--dpx, 0.0520833vw)); }
 
-    /* таблица: запись в 3 строки (ФИО / телефон / вакансия красная) */
+    /* таблица: запись 3-строчным блоком (ФИО / телефон / вакансия красная) */
     .ttable {
-        margin-top: calc(58 * var(--dpx, 0.0520833vw));
-        padding: calc(67 * var(--dpx, 0.0520833vw)) calc(48 * var(--dpx, 0.0520833vw));
-        border-radius: calc(58 * var(--dpx, 0.0520833vw));
+        margin-top: calc(89 * var(--dpx, 0.0520833vw));
+        padding: calc(54 * var(--dpx, 0.0520833vw)) calc(69 * var(--dpx, 0.0520833vw)) calc(60 * var(--dpx, 0.0520833vw));
+        border-radius: calc(60 * var(--dpx, 0.0520833vw));
     }
-    .ttable-sub { margin-top: calc(29 * var(--dpx, 0.0520833vw)); }
-    .ttable-head { margin-top: calc(58 * var(--dpx, 0.0520833vw)); }
-    .tth-vac { position: static; display: inline-block; margin-left: calc(19 * var(--dpx, 0.0520833vw)); }
+    .ttable-sub { margin-top: calc(50 * var(--dpx, 0.0520833vw)); }
+    .ttable-head { margin-top: calc(60 * var(--dpx, 0.0520833vw)); }
+    .tth-vac { position: static; display: inline-block; margin-left: calc(20 * var(--dpx, 0.0520833vw)); }
 
-    .trow { display: block; padding: calc(38 * var(--dpx, 0.0520833vw)) 0; }
-    .trow-left { gap: calc(14 * var(--dpx, 0.0520833vw)); }
-    .trow-vac { display: block; margin-top: calc(14 * var(--dpx, 0.0520833vw)); }
+    .trow { display: block; padding: calc(80 * var(--dpx, 0.0520833vw)) 0 0; }
+    .trow-left { gap: calc(30 * var(--dpx, 0.0520833vw)); }
+    .trow-vac { display: block; margin-top: calc(30 * var(--dpx, 0.0520833vw)); }
 }
