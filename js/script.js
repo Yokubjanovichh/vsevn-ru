@@ -2986,7 +2986,7 @@ const heroTextSpecs = [
     selector: ".hero-title",
     size: 28.99,
     weight: 300,
-    color: "#747067",
+    color: "#2F3027", // 6-fix-3: Figma-спек (был #747067)
     lineHeight: 29,
     ls: -0.05,
   },
@@ -3159,17 +3159,19 @@ function initLineCharts() {
   });
 }
 
-// Шаг 1.3: столбцы «Примерный охват аудитории».
-// Высота из data-pct по формуле эталона panel-reach@4x: h = 143.1 + 1.447*pct
-// (LSQ по трём столбцам: 89->271.9 (эталон 272.2), 31->188 (186.1), 19->170.6 (172.1)).
-const REACH_BAR_BASE = 143.1;
-const REACH_BAR_PER_PCT = 1.447;
+// Шаг 1.3 / 6-fix-4: столбцы «Примерный охват аудитории».
+// Высота из data-pct — калибровка по НОВОМУ эталону panel-reach-new@hq
+// (точное прохождение через 3 точки: 89->302.2, 31->214.1, 19->172.1;
+// зависимость нелинейная — квадратичная интерполяция).
+function reachBarHeight(pct) {
+  return 88.93 + 4.915 * pct - 0.0283 * pct * pct;
+}
 
 function initReachBars() {
   document.querySelectorAll(".reach-bar[data-pct]").forEach(function (bar) {
     const pct = parseFloat(bar.dataset.pct);
     if (!Number.isFinite(pct)) return;
-    const h = REACH_BAR_BASE + REACH_BAR_PER_PCT * pct;
+    const h = reachBarHeight(pct);
     bar.style.height = "calc(" + h.toFixed(1) + " * var(--dpx, 0.0520833vw))";
     const badge = bar.querySelector(".badge-text");
     if (badge) badge.dataset.text = String(pct) + "%";
@@ -3224,11 +3226,12 @@ const midTextSpecs = [
     family: "figtree",
   },
   {
+    // 6-fix-4: cap 20.5 эталона = 28.7 (Figtree 0.715; был 32.61)
     selector: ".reach-more-num",
-    size: 32.61,
+    size: 28.7,
     weight: 500,
     color: "#2F3028",
-    lineHeight: 33,
+    lineHeight: 29,
     family: "figtree",
   },
   {
@@ -3240,11 +3243,12 @@ const midTextSpecs = [
     family: "figtree",
   },
   {
+    // 6-fix-4: cap 12.3 эталона = 16.3 (Sora-цифры 0.753)
     selector: ".badge-text",
-    size: 21,
+    size: 16.3,
     weight: 400,
     color: "#FFFFFF",
-    lineHeight: 21,
+    lineHeight: 17,
     anchor: "middle",
     family: "figtree",
   },
@@ -3300,9 +3304,11 @@ const midTextSpecs = [
     anchor: "middle",
     family: "figtree",
   },
-  // ТЗ-5-fix: точный Figma-спек месяцев панели A — Figtree 400/18.82/lh100%
+  // ТЗ-5-fix: точный Figma-спек месяцев панели A — Figtree 400/18.82/lh100%.
+  // 6-fix-6: :not(.promo-month) — месяцы панели C несут ОБА класса, и этот
+  // спек перекрашивал их в серый ПОСЛЕ спека .promo-month (#2F3027)
   {
-    selector: ".month-label",
+    selector: ".month-label:not(.promo-month)",
     size: 18.82,
     weight: 400,
     color: "#7C7971",
