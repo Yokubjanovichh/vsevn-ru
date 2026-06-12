@@ -3023,6 +3023,274 @@
     }
 
     // ========================================================================
+    // ШАГ 2.1: таблица «Дополнительные публикации вашего объявления на
+    // сторонних площадках» — data-driven (PUB_ROWS, backend-ready). Замеры
+    // эталона Homies Lab_ru.jpg (×4.0375), x панель-относительно; band/шаг
+    // рядов/стили — общие с resume-таблицей (те же CSS-классы).
+    // Вертикальная центровка: ВАКАНСИЯ — по строчным (baseline 50.5 от верха
+    // ряда, как resume), даты/счёт/ссылка — по цифрам (baseline 49.6, замер).
+    // maxW — защитная граница до следующей колонки минус ~16 (как в 1.4).
+    // ========================================================================
+    const PUB_COLS = [
+        { key: 'vac',     x: 46.8,   size: 23,    base: 50.5, maxW: 526.6 },
+        { key: 'placed',  x: 589.4,  size: 20,    base: 49.6, maxW: 183.7 },
+        { key: 'account', x: 789.1,  size: 18.82, base: 49.6, maxW: 229.2 },
+        { key: 'accDate', x: 1034.3, size: 20,    base: 49.6, maxW: 184.1 },
+        { key: 'url',     x: 1234.4, size: 20,    base: 49.6, maxW: 330.7 },
+        { key: 'removed', x: 1581.1, size: 20,    base: 49.6, maxW: 191.9 }
+    ];
+
+    // 27 строк: источники ok=6, vk=6, site=5, tg=5, max=5 (P4); счета — из
+    // ACCOUNTS (даты счетов согласованы с resume-таблицей), 7 счетов имеют
+    // по ДВА ряда (docx «по два значения на один счёт»): 1829/1846/1874/
+    // 1902/1917/1930/1944. Сортировка: ДАТА РАЗМЕЩ. по убыванию.
+    // Форматы дат: размещение «11 Нояб 2024» (короткий месяц, эталон),
+    // счёт/удаление «11 Апреля 2024» (полный месяц). source — метаданные
+    // для фильтрации (шаги 2.2/2.3), в таблице не рендерится.
+    const PUB_ROWS = [
+        { vac: 'Менеджер по продажам', placed: '25 Янв 2025',  account: 'Св000000001944', accDate: '20 Января 2025',  url: 'https://ok.ru/rabotann/topic/155',  removed: '25 Апреля 2025',  source: 'ok' },
+        { vac: 'Бухгалтер',            placed: '21 Янв 2025',  account: 'Св000000001923', accDate: '4 Августа 2024',  url: 'https://vk.com/wall-18452_2230',    removed: '21 Мая 2025',     source: 'vk' },
+        { vac: 'Водитель',             placed: '16 Янв 2025',  account: 'Св000000001944', accDate: '20 Января 2025',  url: 'https://t.me/rabota_nn/1841',       removed: '16 Апреля 2025',  source: 'tg' },
+        { vac: 'Электрик',             placed: '9 Янв 2025',   account: 'Св000000001930', accDate: '11 Августа 2024', url: 'https://rabota-nn.ru/vac/84712',    removed: '9 Мая 2025',      source: 'site' },
+        { vac: 'Повар',                placed: '27 Дек 2024',  account: 'Св000000001917', accDate: '28 Июля 2024',    url: 'https://max.ru/rabota_nn/482',      removed: '27 Марта 2025',   source: 'max' },
+        { vac: 'Сварщик',              placed: '23 Дек 2024',  account: 'Св000000001930', accDate: '11 Августа 2024', url: 'https://ok.ru/group/5279061428',   removed: '23 Апреля 2025',  source: 'ok' },
+        { vac: 'Кассир',               placed: '18 Дек 2024',  account: 'Св000000001910', accDate: '21 Июля 2024',    url: 'https://vk.com/wall-21043_8714',    removed: '18 Марта 2025',   source: 'vk' },
+        { vac: 'Охранник',             placed: '12 Дек 2024',  account: 'Св000000001902', accDate: '14 Июля 2024',    url: 'https://t.me/vakansii52/906',       removed: '12 Апреля 2025',  source: 'tg' },
+        { vac: 'Администратор',        placed: '5 Дек 2024',   account: 'Св000000001898', accDate: '7 Июля 2024',     url: 'https://zarplata.ru/vacancy/3027', removed: '5 Марта 2025',    source: 'site' },
+        { vac: 'Логист',               placed: '28 Нояб 2024', account: 'Св000000001917', accDate: '28 Июля 2024',    url: 'https://ok.ru/vakansiinn/topic/87', removed: '28 Февраля 2025', source: 'ok' },
+        { vac: 'Менеджер по продажам', placed: '24 Нояб 2024', account: 'Св000000001891', accDate: '30 Июня 2024',    url: 'https://vk.com/wall-30287_1456',    removed: '24 Марта 2025',   source: 'vk' },
+        { vac: 'Бухгалтер',            placed: '19 Нояб 2024', account: 'Св000000001902', accDate: '14 Июля 2024',    url: 'https://max.ru/vakansii52/73',      removed: '19 Февраля 2025', source: 'max' },
+        { vac: 'Водитель',             placed: '14 Нояб 2024', account: 'Св000000001885', accDate: '23 Июня 2024',    url: 'https://t.me/nn_jobs/12474',        removed: '14 Марта 2025',   source: 'tg' },
+        { vac: 'Менеджер по продажам', placed: '11 Нояб 2024', account: 'Св000000001829', accDate: '21 Апреля 2024',  url: 'https://t.me/Rabota_vod/273',       removed: '11 Февраля 2025', source: 'tg' },
+        { vac: 'Повар',                placed: '31 Окт 2024',  account: 'Св000000001874', accDate: '9 Июня 2024',     url: 'https://gorodrabot.ru/job/1287',    removed: '31 Января 2025',  source: 'site' },
+        { vac: 'Электрик',             placed: '27 Окт 2024',  account: 'Св000000001870', accDate: '2 Июня 2024',     url: 'https://ok.ru/rabota52/topic/301',  removed: '27 Февраля 2025', source: 'ok' },
+        { vac: 'Кассир',               placed: '22 Окт 2024',  account: 'Св000000001874', accDate: '9 Июня 2024',     url: 'https://vk.com/wall-77310_905',     removed: '22 Января 2025',  source: 'vk' },
+        { vac: 'Сварщик',              placed: '16 Окт 2024',  account: 'Св000000001863', accDate: '26 Мая 2024',     url: 'https://max.ru/nn_jobs/1205',       removed: '16 Февраля 2025', source: 'max' },
+        { vac: 'Охранник',             placed: '10 Окт 2024',  account: 'Св000000001857', accDate: '19 Мая 2024',     url: 'https://trudvsem.ru/vac/55207',     removed: '10 Января 2025',  source: 'site' },
+        { vac: 'Администратор',        placed: '30 Сен 2024',  account: 'Св000000001852', accDate: '12 Мая 2024',     url: 'https://ok.ru/nnvakansii/topic/12', removed: '30 Декабря 2024', source: 'ok' },
+        { vac: 'Логист',               placed: '25 Сен 2024',  account: 'Св000000001846', accDate: '5 Мая 2024',      url: 'https://vk.com/wall-150462_388',    removed: '25 Января 2025',  source: 'vk' },
+        { vac: 'Водитель',             placed: '18 Сен 2024',  account: 'Св000000001840', accDate: '28 Апреля 2024',  url: 'https://t.me/trud_nino/358',        removed: '18 Декабря 2024', source: 'tg' },
+        { vac: 'Повар',                placed: '11 Сен 2024',  account: 'Св000000001846', accDate: '5 Мая 2024',      url: 'https://max.ru/trud_nn/667',        removed: '11 Января 2025',  source: 'max' },
+        { vac: 'Менеджер по продажам', placed: '29 Авг 2024',  account: 'Св000000001831', accDate: '24 Апреля 2024',  url: 'https://careerist.ru/vac/90412',    removed: '29 Декабря 2024', source: 'site' },
+        { vac: 'Кассир',               placed: '22 Авг 2024',  account: 'Св000000001829', accDate: '21 Апреля 2024',  url: 'https://ok.ru/group/615047289',     removed: '22 Ноября 2024',  source: 'ok' },
+        { vac: 'Бухгалтер',            placed: '15 Авг 2024',  account: 'Св000000001814', accDate: '15 Апреля 2024',  url: 'https://vk.com/wall-9041_517',      removed: '15 Декабря 2024', source: 'vk' },
+        { vac: 'Электрик',             placed: '8 Авг 2024',   account: 'Св000000001811', accDate: '11 Апреля 2024',  url: 'https://max.ru/job_nino/94',        removed: '8 Ноября 2024',   source: 'max' }
+    ];
+
+    function initPubTable() {
+        const box = document.getElementById('pubRows');
+        if (!box) return;
+        if (box.children.length !== PUB_ROWS.length) {
+            box.textContent = '';
+            PUB_ROWS.forEach(function (row) {
+                const tr = document.createElement('div');
+                tr.className = 'resume-row';
+                PUB_COLS.forEach(function (col) {
+                    const cell = document.createElement('span');
+                    cell.className = 'resume-cell pcell-' + col.key;
+                    cell.style.left = 'calc(' + col.x + ' * var(--dpx, 0.0520833vw))';
+                    cell.style.top = 'calc(' + (col.base - Math.round(col.size * 0.82)) +
+                        ' * var(--dpx, 0.0520833vw))';
+                    cell.style.maxWidth = 'calc(' + col.maxW + ' * var(--dpx, 0.0520833vw))';
+                    cell.dataset.text = row[col.key];
+                    tr.append(cell);
+                });
+                box.append(tr);
+            });
+        }
+        // заголовок панели и шапка колонок рендерятся в initResumeTable
+        // (общие классы .resume-title/.resume-col); тут — только ячейки
+        box.querySelectorAll('.resume-row').forEach(function (tr, i) {
+            const row = PUB_ROWS[i];
+            if (!row) return;
+            PUB_COLS.forEach(function (col) {
+                const cell = tr.querySelector('.pcell-' + col.key);
+                if (cell) renderResumeCellText(cell, row[col.key], col.size);
+            });
+        });
+    }
+
+    // ШАГ 2.2 (P3/P5): фильтр pub-таблицы — ПРЕФИКС display-имени источника
+    // (с начала имени, без учёта регистра): «о» -> Одноклассники, «в» ->
+    // ВКонтакте, «с» -> Сайты («Ссайты» docx — опечатка, Q4), «т» ->
+    // Телеграм, «м» -> Макс. Слово источника в таблице не отображается —
+    // оранжевой подсветки нет (она только для resume). Пустое поле — все
+    // 27 строк; нет совпадений — 0 строк (шапка остаётся).
+    const PUB_SOURCE_NAMES = {
+        ok: 'Одноклассники',
+        vk: 'ВКонтакте',
+        site: 'Сайты',
+        tg: 'Телеграм',
+        max: 'Макс'
+    };
+
+    // общий предикат видимости pub-строки: поиск ∧ счёт-фильтр (2.3)
+    function pubRowMatches(row, q) {
+        const name = PUB_SOURCE_NAMES[row.source] || '';
+        const sourceOk = !q || name.toLowerCase().indexOf(q) === 0;
+        const accOk = !pubAccPopup.filterSet.size || pubAccPopup.filterSet.has(row.account);
+        return sourceOk && accOk;
+    }
+
+    function applyPubSearch() {
+        const input = document.querySelector('.pub-search .resume-search-input');
+        const box = document.getElementById('pubRows');
+        if (!input || !box) return;
+        const q = input.value.trim().toLowerCase();
+        box.querySelectorAll('.resume-row').forEach(function (tr, i) {
+            const row = PUB_ROWS[i];
+            if (row) tr.style.display = pubRowMatches(row, q) ? '' : 'none';
+        });
+        // шаг 2.4: те же фильтры — и к адаптивным рядам (единое состояние)
+        const tbox = document.getElementById('tabPubRows');
+        if (tbox) {
+            tbox.querySelectorAll('.tpub-row').forEach(function (tr, i) {
+                const row = PUB_ROWS[i];
+                if (row) tr.style.display = pubRowMatches(row, q) ? '' : 'none';
+            });
+        }
+        // SEL1: высота страницы изменилась при открытом pub-попапе —
+        // пересчитать spacer/докрутку (в обе стороны)
+        const popup = document.getElementById('pubAccPopup');
+        if (popup && !popup.hidden) ensureAccPopupVisible(popup);
+    }
+
+    // Поиск pub-панели (P5/P6): R5-поведение капсулы (лупа/плейсхолдер
+    // исчезают, каретка на месте лупы), ввод фильтрует в реальном времени,
+    // ✕ очищает поле и снимает фильтр. «...» без попапа — шаг 2.3.
+    let pubSearchBound = false;
+    function initPubSearch() {
+        const wrap = document.querySelector('.pub-search');
+        if (!wrap) return;
+        const input = wrap.querySelector('.resume-search-input');
+        const clearBtn = wrap.querySelector('.resume-clear-btn');
+        if (!input) return;
+        if (!pubSearchBound) {
+            pubSearchBound = true;
+            input.addEventListener('input', function () {
+                wrap.classList.toggle('has-value', input.value.length > 0);
+                applyPubSearch();
+            });
+            input.addEventListener('focus', function () { wrap.classList.add('is-focused'); });
+            input.addEventListener('blur', function () { wrap.classList.remove('is-focused'); });
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    input.value = '';
+                    wrap.classList.remove('has-value');
+                    applyPubSearch();
+                });
+            }
+        }
+        // повторный проход (fonts.ready/брейкпоинт): активный фильтр
+        // переприменяется к перестроенным строкам
+        if (input.value) applyPubSearch();
+    }
+
+    // ШАГ 2.2 (P2): клик по «Посмотреть»/стрелке карточки -> слово карты
+    // (data-pub-word) попадает в поиск pub-таблицы, фильтр применяется
+    // сразу; новое слово ПОЛНОСТЬЮ заменяет старое. Клик ловится на
+    // .vcard-foot (дети всплывают; сам foot мышь не ловит — CSS).
+    let viewCardsBound = false;
+    function initViewCards() {
+        if (viewCardsBound) return;
+        viewCardsBound = true;
+        document.querySelectorAll('.vcard').forEach(function (card) {
+            const foot = card.querySelector('.vcard-foot');
+            const word = card.dataset.pubWord;
+            if (!foot || !word) return;
+            foot.addEventListener('click', function () {
+                // этап 3: реальное переключение раздела (S1), слово — в поиск
+                setPubMode(true);
+                const wrap = document.querySelector('.pub-search');
+                const input = wrap && wrap.querySelector('.resume-search-input');
+                if (!input) return;
+                input.value = word;
+                wrap.classList.add('has-value');
+                applyPubSearch();
+            });
+        });
+    }
+
+    // ЭТАП 3 (S1): переключение разделов «Отправленные резюме» <-> «Ссылки
+    // на объявления». Меняется ТОЛЬКО нижняя таблица (resume/pub панели и
+    // их адаптивные виды), верхний дашборд не трогается, без перезагрузки.
+    // Состояния фильтров/поиска обеих таблиц СОХРАНЯЮТСЯ (только классы).
+    // Цвет SVG-текста сайдбара = currentColor (без перерендера); тексты
+    // мобильного tnav красятся при рендере -> initTabView() переподкрасит.
+    function setPubMode(on) {
+        document.body.classList.toggle('pub-mode', on);
+        const ads = document.querySelector('.snav-btn[data-tab="ads"]');
+        const res = document.querySelector('.snav-btn[data-tab="resume"]');
+        if (ads) ads.classList.toggle('active', on);
+        if (res) res.classList.toggle('active', !on);
+        const tads = document.querySelector('.tnav-btn[data-tab="ads"]');
+        const tres = document.querySelector('.tnav-btn[data-tab="resume"]');
+        if (tads) tads.classList.toggle('is-active', on);
+        if (tres) tres.classList.toggle('is-active', !on);
+        // хэш синхронизируется как dev-путь (replaceState — без скролла/цикла)
+        if (window.history && history.replaceState) {
+            history.replaceState(null, '', location.pathname + location.search + (on ? '#pub' : ''));
+        }
+        initTabView();
+    }
+
+    // 4-fix (кроссбраузер): Safari <=13 — matchMedia без addEventListener
+    function bindMqChange(mq, fn) {
+        if (mq.addEventListener) mq.addEventListener('change', fn);
+        else if (mq.addListener) mq.addListener(fn);
+    }
+
+    // 4-fix: плавный скролл с фолбэком (нет scrollBehavior — мгновенный)
+    function smoothScrollTo(top) {
+        if ('scrollBehavior' in document.documentElement.style) {
+            window.scrollTo({ top: top, behavior: 'smooth' });
+        } else {
+            window.scrollTo(0, top);
+        }
+    }
+
+    // B1: докрутка — заголовок pub-таблицы у ВЕРХНЕГО края экрана
+    // (в адаптиве — заголовок .tab-pub)
+    function scrollPubTitleTop() {
+        const ph = window.matchMedia && window.matchMedia('(max-width: 799.98px)').matches;
+        const el = document.querySelector(ph ? '.tpub-title' : '.pub-title');
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        smoothScrollTo(Math.max(0, top));
+    }
+
+    let pubToggleBound = false;
+    function initPubToggle() {
+        if (pubToggleBound) return;
+        pubToggleBound = true;
+        // S1: клик по кнопкам разделов (сайдбар + мобильный tnav);
+        // «Журнал соискателей» / «Копия email» — без обработчиков, как были
+        document.querySelectorAll(
+            '.snav-btn[data-tab="ads"], .snav-btn[data-tab="resume"], ' +
+            '.tnav-btn[data-tab="ads"], .tnav-btn[data-tab="resume"]'
+        ).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setPubMode(btn.dataset.tab === 'ads');
+            });
+        });
+        // B1: стрелка «Совокупность ссылочного продвижения» -> pub-раздел,
+        // заголовок таблицы у верха экрана (hover-анимация — TODO-CLIENT)
+        const promo = document.querySelector('.promo-arrow');
+        if (promo) {
+            promo.addEventListener('click', function () {
+                setPubMode(true);
+                scrollPubTitleTop();
+            });
+        }
+        // ручное редактирование хэша по-прежнему работает (dev-путь)
+        window.addEventListener('hashchange', function () {
+            setPubMode(location.hash === '#pub');
+        });
+        setPubMode(location.hash === '#pub');
+    }
+
+    // ========================================================================
     // Шаг 1.6: попап счетов + фильтр (POP1-8, SEL1).
     // ACCOUNTS: 19 уникальных счетов таблицы (счёт №3/№12 общий) + 1 без
     // строк в таблице (Св000000001944) = 20 записей, даты = даты счетов
@@ -3070,34 +3338,21 @@
 
     function addAccountEntry(entry) {
         ACCOUNTS.splice(accountInsertIndex(ACCOUNTS, entry), 0, entry);
-        accListBuilt = false;        // при следующем рендере список перестроится
+        // оба списка (resume и pub) перестроятся при следующем рендере
+        accPopupControllers.forEach(function (c) { c.markListStale(); });
         initAccountsPopup();
     }
 
-    const accountFilterSet = new Set();   // выбранные счета (OR-фильтр)
-    let accScrollIndex = 0;
-    let accPopupBound = false;
-    let accListBuilt = false;
+    // ШАГ 2.3: попап обслуживает ДВА контекста (resume и pub) — фабрика
+    // контроллеров ниже; ACCOUNTS — ЕДИНЫЙ источник (без дублирования),
+    // выборы счетов НЕЗАВИСИМЫ (у каждого контроллера свой Set).
+    const accPopupControllers = [];
 
-    function accPopupEls() {
-        return {
-            popup: document.getElementById('accPopup'),
-            list: document.getElementById('accList'),
-            thumb: document.getElementById('accThumb'),
-            head: document.querySelector('.resume-head'),
-            dotsBtn: document.querySelector('.resume-filter-btn'),
-            filterX: document.querySelector('.resume-filter-x'),
-            up: document.querySelector('.acc-sb-up'),
-            down: document.querySelector('.acc-sb-down'),
-            track: document.querySelector('.acc-sb-track')
-        };
-    }
-
-    function buildAccList(list) {
+    function buildAccList(list, filterSet) {
         list.textContent = '';
         ACCOUNTS.forEach(function (acc) {
             const row = document.createElement('div');
-            row.className = 'acc-row' + (accountFilterSet.has(acc.num) ? ' is-checked' : '');
+            row.className = 'acc-row' + (filterSet.has(acc.num) ? ' is-checked' : '');
             row.dataset.num = acc.num;
             const cb = document.createElement('span');
             cb.className = 'acc-cb';
@@ -3113,7 +3368,6 @@
             row.append(cb, num, date);
             list.append(row);
         });
-        accListBuilt = true;
     }
 
     // fix-2: ширина попапа и x даты — от реальных метрик текста (наши
@@ -3167,24 +3421,6 @@
         });
     }
 
-    // POP4: шаговый скролл (стрелки/колесо), бегунок пропорционален
-    function updateAccScroll() {
-        const els = accPopupEls();
-        if (!els.list) return;
-        const max = Math.max(0, ACCOUNTS.length - ACC_VISIBLE);
-        accScrollIndex = Math.min(Math.max(accScrollIndex, 0), max);
-        els.list.style.transform = 'translateY(calc(' + (-accScrollIndex * ACC_ROW_H) +
-            ' * var(--dpx, 0.0520833vw)))';
-        if (els.up) els.up.classList.toggle('is-disabled', accScrollIndex === 0);
-        if (els.down) els.down.classList.toggle('is-disabled', accScrollIndex === max);
-        if (els.thumb && els.track) {
-            const frac = Math.min(1, ACC_VISIBLE / ACCOUNTS.length);
-            els.thumb.style.height = (frac * 100).toFixed(2) + '%';
-            const top = max ? (accScrollIndex / max) * (1 - frac) * 100 : 0;
-            els.thumb.style.top = top.toFixed(2) + '%';
-        }
-    }
-
     // SEL1: чистая геометрия — минимальный докрут и «дорисовка».
     // fix-3: spacer считается от НИЗА КАРТЫ и вставляется ВНУТРЬ .dash-card
     // (карта overflow:hidden резала попап; удлиняем карту — попап остаётся
@@ -3224,110 +3460,196 @@
         if (res.scrollBy > 0) window.scrollBy(0, res.scrollBy);
     }
 
-    function openAccPopup() {
-        const els = accPopupEls();
-        if (!els.popup) return;
-        els.popup.hidden = false;
-        if (els.dotsBtn) els.dotsBtn.classList.add('is-open');
-        layoutAccPopup(els.popup);
-        renderAccPopupTexts();
-        updateAccScroll();
-        ensureAccPopupVisible(els.popup);
+    // ШАГ 2.3: фабрика контроллеров попапа счетов. Механика 1.6 целиком
+    // (POP1-8, SEL1), параметризованы: head/попап/список/бегунок своего
+    // контекста + cfg.apply (фильтр своей таблицы). Одновременно открыт
+    // максимум ОДИН попап (open() закрывает остальные).
+    function createAccPopupController(cfg) {
+        const ctl = {
+            filterSet: new Set(),    // выбранные счета (OR-фильтр, независимый)
+            scrollIndex: 0,
+            bound: false,
+            listBuilt: false
+        };
+
+        function els() {
+            const head = document.querySelector(cfg.headSel);
+            const popup = document.getElementById(cfg.popupId);
+            return {
+                head: head,
+                popup: popup,
+                list: document.getElementById(cfg.listId),
+                thumb: document.getElementById(cfg.thumbId),
+                dotsBtn: head ? head.querySelector('.resume-filter-btn') : null,
+                filterX: head ? head.querySelector('.resume-filter-x') : null,
+                up: popup ? popup.querySelector('.acc-sb-up') : null,
+                down: popup ? popup.querySelector('.acc-sb-down') : null,
+                track: popup ? popup.querySelector('.acc-sb-track') : null
+            };
+        }
+
+        // POP4: шаговый скролл (стрелки/колесо), бегунок пропорционален
+        function updateScroll() {
+            const e = els();
+            if (!e.list) return;
+            const max = Math.max(0, ACCOUNTS.length - ACC_VISIBLE);
+            ctl.scrollIndex = Math.min(Math.max(ctl.scrollIndex, 0), max);
+            e.list.style.transform = 'translateY(calc(' + (-ctl.scrollIndex * ACC_ROW_H) +
+                ' * var(--dpx, 0.0520833vw)))';
+            if (e.up) e.up.classList.toggle('is-disabled', ctl.scrollIndex === 0);
+            if (e.down) e.down.classList.toggle('is-disabled', ctl.scrollIndex === max);
+            if (e.thumb && e.track) {
+                const frac = Math.min(1, ACC_VISIBLE / ACCOUNTS.length);
+                e.thumb.style.height = (frac * 100).toFixed(2) + '%';
+                const top = max ? (ctl.scrollIndex / max) * (1 - frac) * 100 : 0;
+                e.thumb.style.top = top.toFixed(2) + '%';
+            }
+        }
+
+        function open() {
+            accPopupControllers.forEach(function (c) { if (c !== ctl) c.close(); });
+            const e = els();
+            if (!e.popup) return;
+            e.popup.hidden = false;
+            if (e.dotsBtn) e.dotsBtn.classList.add('is-open');
+            layoutAccPopup(e.popup);
+            renderAccPopupTexts();
+            updateScroll();
+            ensureAccPopupVisible(e.popup);
+        }
+
+        function close() {
+            const e = els();
+            if (!e.popup || e.popup.hidden) return;
+            e.popup.hidden = true;
+            if (e.dotsBtn) e.dotsBtn.classList.remove('is-open');
+            removePageSpacer();
+        }
+
+        // POP8: вид строки заголовка при активном фильтре
+        function updateFilterActive() {
+            const e = els();
+            if (e.head) e.head.classList.toggle('filter-active', ctl.filterSet.size > 0);
+        }
+
+        function toggle(num, row) {
+            if (ctl.filterSet.has(num)) ctl.filterSet.delete(num);
+            else ctl.filterSet.add(num);
+            if (row) row.classList.toggle('is-checked', ctl.filterSet.has(num));
+            updateFilterActive();
+            cfg.apply();
+        }
+
+        ctl.close = close;
+        ctl.markListStale = function () { ctl.listBuilt = false; };
+
+        ctl.init = function () {
+            const e = els();
+            if (!e.popup || !e.list) return;
+            if (!ctl.listBuilt || e.list.children.length !== ACCOUNTS.length) {
+                buildAccList(e.list, ctl.filterSet);
+                ctl.listBuilt = true;
+            }
+            layoutAccPopup(e.popup);
+            if (!e.popup.hidden) renderAccPopupTexts();
+            updateScroll();
+
+            if (ctl.bound) return;
+            ctl.bound = true;
+
+            e.dotsBtn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                if (els().popup.hidden) open(); else close();
+            });
+
+            // POP7: клик вне СВОЕГО попапа/кнопки закрывает его (выбор
+            // сохраняется); клик по «...» другой таблицы тоже закрывает —
+            // его собственный обработчик затем откроет свой попап
+            document.addEventListener('click', function (ev) {
+                const cur = els();
+                if (!cur.popup || cur.popup.hidden) return;
+                if (cur.popup.contains(ev.target)) return;
+                if (cur.dotsBtn && cur.dotsBtn.contains(ev.target)) return;
+                close();
+            });
+
+            e.list.parentElement.addEventListener('wheel', function (ev) {
+                ev.preventDefault();
+                ctl.scrollIndex += (ev.deltaY > 0 ? 1 : -1);
+                updateScroll();
+            }, { passive: false });
+
+            e.up.addEventListener('click', function () { ctl.scrollIndex--; updateScroll(); });
+            e.down.addEventListener('click', function () { ctl.scrollIndex++; updateScroll(); });
+
+            e.list.addEventListener('click', function (ev) {
+                const row = ev.target.closest('.acc-row');
+                if (row) toggle(row.dataset.num, row);
+            });
+
+            // перетаскивание бегунка (POP4: состояние «нажат»)
+            e.thumb.addEventListener('mousedown', function (ev) {
+                ev.preventDefault();
+                e.thumb.classList.add('is-dragging');
+                const startY = ev.clientY;
+                const startIdx = ctl.scrollIndex;
+                const max = Math.max(1, ACCOUNTS.length - ACC_VISIBLE);
+                const trackH = e.track.getBoundingClientRect().height;
+                const free = trackH * (1 - Math.min(1, ACC_VISIBLE / ACCOUNTS.length));
+                function move(mv) {
+                    ctl.scrollIndex = startIdx + Math.round((mv.clientY - startY) / (free / max));
+                    updateScroll();
+                }
+                function upFn() {
+                    e.thumb.classList.remove('is-dragging');
+                    document.removeEventListener('mousemove', move);
+                    document.removeEventListener('mouseup', upFn);
+                }
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', upFn);
+            });
+
+            // ✕ деактивации: снять чекбоксы СВОЕГО списка, фильтр, вид
+            if (e.filterX) {
+                e.filterX.addEventListener('click', function () {
+                    ctl.filterSet.clear();
+                    const cur = els();
+                    if (cur.list) {
+                        cur.list.querySelectorAll('.acc-row.is-checked').forEach(function (r) {
+                            r.classList.remove('is-checked');
+                        });
+                    }
+                    updateFilterActive();
+                    cfg.apply();
+                });
+            }
+        };
+
+        accPopupControllers.push(ctl);
+        return ctl;
     }
 
-    function closeAccPopup() {
-        const els = accPopupEls();
-        if (!els.popup || els.popup.hidden) return;
-        els.popup.hidden = true;
-        if (els.dotsBtn) els.dotsBtn.classList.remove('is-open');
-        removePageSpacer();
-    }
+    // resume-контекст (поведение 1.6 прежнее) и pub-контекст (2.3)
+    const resumeAccPopup = createAccPopupController({
+        headSel: '.resume-panel:not(.pub-panel) .resume-head',
+        popupId: 'accPopup',
+        listId: 'accList',
+        thumbId: 'accThumb',
+        apply: function () { applyResumeSearch(); }
+    });
+    const pubAccPopup = createAccPopupController({
+        headSel: '.pub-head',
+        popupId: 'pubAccPopup',
+        listId: 'pubAccList',
+        thumbId: 'pubAccThumb',
+        apply: function () { applyPubSearch(); }
+    });
 
-    // POP8: вид строки заголовка при активном фильтре
-    function updateFilterActiveState() {
-        const els = accPopupEls();
-        if (els.head) els.head.classList.toggle('filter-active', accountFilterSet.size > 0);
-    }
-
-    function toggleAccount(num, row) {
-        if (accountFilterSet.has(num)) accountFilterSet.delete(num);
-        else accountFilterSet.add(num);
-        if (row) row.classList.toggle('is-checked', accountFilterSet.has(num));
-        updateFilterActiveState();
-        applyResumeSearch();
-    }
+    // обратная совместимость: applyResumeSearch фильтрует по этому Set
+    const accountFilterSet = resumeAccPopup.filterSet;
 
     function initAccountsPopup() {
-        const els = accPopupEls();
-        if (!els.popup || !els.list) return;
-        if (!accListBuilt || els.list.children.length !== ACCOUNTS.length) buildAccList(els.list);
-        layoutAccPopup(els.popup);
-        if (!els.popup.hidden) renderAccPopupTexts();
-        updateAccScroll();
-
-        if (accPopupBound) return;
-        accPopupBound = true;
-
-        els.dotsBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (els.popup.hidden) openAccPopup(); else closeAccPopup();
-        });
-
-        // POP7: клик в любом месте вне попапа закрывает его (выбор сохраняется)
-        document.addEventListener('click', function (e) {
-            const p = document.getElementById('accPopup');
-            if (!p || p.hidden) return;
-            if (e.target.closest('.acc-popup') || e.target.closest('.resume-filter-btn')) return;
-            closeAccPopup();
-        });
-
-        els.list.parentElement.addEventListener('wheel', function (e) {
-            e.preventDefault();
-            accScrollIndex += (e.deltaY > 0 ? 1 : -1);
-            updateAccScroll();
-        }, { passive: false });
-
-        els.up.addEventListener('click', function () { accScrollIndex--; updateAccScroll(); });
-        els.down.addEventListener('click', function () { accScrollIndex++; updateAccScroll(); });
-
-        els.list.addEventListener('click', function (e) {
-            const row = e.target.closest('.acc-row');
-            if (row) toggleAccount(row.dataset.num, row);
-        });
-
-        // перетаскивание бегунка (POP4: состояние «нажат»)
-        els.thumb.addEventListener('mousedown', function (e) {
-            e.preventDefault();
-            els.thumb.classList.add('is-dragging');
-            const startY = e.clientY;
-            const startIdx = accScrollIndex;
-            const max = Math.max(1, ACCOUNTS.length - ACC_VISIBLE);
-            const trackH = els.track.getBoundingClientRect().height;
-            const free = trackH * (1 - Math.min(1, ACC_VISIBLE / ACCOUNTS.length));
-            function move(ev) {
-                accScrollIndex = startIdx + Math.round((ev.clientY - startY) / (free / max));
-                updateAccScroll();
-            }
-            function upFn() {
-                els.thumb.classList.remove('is-dragging');
-                document.removeEventListener('mousemove', move);
-                document.removeEventListener('mouseup', upFn);
-            }
-            document.addEventListener('mousemove', move);
-            document.addEventListener('mouseup', upFn);
-        });
-
-        // ✕ деактивации: снять все чекбоксы, фильтр, вернуть блок вправо
-        if (els.filterX) {
-            els.filterX.addEventListener('click', function () {
-                accountFilterSet.clear();
-                document.querySelectorAll('.acc-row.is-checked').forEach(function (r) {
-                    r.classList.remove('is-checked');
-                });
-                updateFilterActiveState();
-                applyResumeSearch();
-            });
-        }
+        accPopupControllers.forEach(function (c) { c.init(); });
     }
 
     // ========================================================================
@@ -3397,7 +3719,9 @@
             const active = el.closest('.tnav-btn').classList.contains('is-active');
             renderTabText(el, ph ? 16 : 19, 400, active ? '#FFFFFF' : '#7B786F', null, K);
         });
-        view.querySelectorAll('.tstat-num').forEach(function (el) { renderTabText(el, ph ? 45 : 47, 300, '#2F3028', null, K); });
+        // 2.4-fix: числа статов — Roboto 45/46 (эталонные cap 31.8/32.8 и
+        // ink-ширины = Roboto; Sora 47/45 был шире эталона и ломал колонку)
+        view.querySelectorAll('.tstat-num').forEach(function (el) { renderTabRoboto(el, ph ? 46 : 45, '#2F3028', K); });
         // Figma-спек: 16.5/400 (cap-замер эталона 16.6 ✓), шаг строк 22 (эталон)
         view.querySelectorAll('.tstat-label').forEach(function (el) { renderTabText(el, ph ? 16 : 16.5, 400, '#7C7971', ph ? 20 : 22, K); });
         const nm = view.querySelector('.tcompany-name');
@@ -3405,7 +3729,7 @@
         const inn = view.querySelector('.tcompany-inn');
         if (inn) renderTabText(inn, ph ? 19 : 25, 300, '#AEAEB0', null, K);
         const tt = view.querySelector('.ttable-title');
-        if (tt) renderTabText(tt, ph ? 22 : 25, 600, '#0F0800', ph ? 24 : 30.3, K);
+        if (tt) renderTabText(tt, ph ? 20.5 : 25, 600, '#0F0800', ph ? 24 : 30.3, K);
         const ts = view.querySelector('.ttable-sub');
         if (ts) renderTabText(ts, ph ? 19 : 22, 300, '#7C7971', ph ? 22.5 : 25, K);
         const thn = view.querySelector('.tth-name');
@@ -3442,19 +3766,194 @@
         box.querySelectorAll('.trow-phone').forEach(function (el) { renderTabText(el, ph ? 18 : 20, 300, '#1F76A3', null, K); });
         box.querySelectorAll('.trow-vac').forEach(function (el) { renderTabText(el, ph ? 18 : 21, 300, ph ? '#820407' : '#7C7971', null, K); });
 
-        // переключение планшет<->телефон: перерендер мобильных текстов
+        // fix-overflow: пересечение ЛЮБОГО брейкпоинта (800 и 490) гонит
+        // ПОЛНЫЙ renderStaticText — все спеки/тексты переподбираются по
+        // режиму (render-key включает размер/текст, лишнего не рисует)
         if (!tabViewMediaBound && window.matchMedia) {
             tabViewMediaBound = true;
-            window.matchMedia('(max-width: 489.98px)').addEventListener('change', function () {
-                initTabView();
+            ['(max-width: 799.98px)', '(max-width: 489.98px)'].forEach(function (q) {
+                bindMqChange(window.matchMedia(q), function () {
+                    renderStaticText();
+                });
             });
         }
     }
     let tabViewMediaBound = false;
 
     // ========================================================================
-    // Шаг 1.7 (G15): кнопка «вверх» — видна при scrollY > 400px (desktop;
-    // мобильный порог 100px — шаг 1.8), клик = плавный скролл наверх.
+    // ШАГ 2.4: адаптивная pub-таблица (.tab-pub) — данные из PUB_ROWS (единый
+    // источник), даты пересчитываются словарём месяцев в DD.MM.YYYY.
+    // Эталоны: tablet-links@4x (852-баз.) / mobile-links@4x (387-баз.).
+    // ========================================================================
+    // русская дата «25 Янв 2025» / «25 Апреля 2025» -> «25.01.2025»:
+    // 3-буквенный префикс покрывает и короткие, и полные формы месяцев
+    const RU_MON_NUM = {
+        'янв': '01', 'фев': '02', 'мар': '03', 'апр': '04', 'мая': '05',
+        'май': '05', 'июн': '06', 'июл': '07', 'авг': '08', 'сен': '09',
+        'окт': '10', 'ноя': '11', 'дек': '12'
+    };
+
+    function pubDateDots(s) {
+        const p = String(s).trim().split(/\s+/);
+        const mm = p[1] && RU_MON_NUM[p[1].toLowerCase().slice(0, 3)];
+        if (!mm) return String(s);
+        return (p[0].length < 2 ? '0' + p[0] : p[0]) + '.' + mm + '.' + p[2];
+    }
+
+    // обрезка под ширину (всё в dpx): не влезло — посимвольно + «...»
+    function truncToWidth(text, size, maxW) {
+        if (measureTextWidth(text, size, 300, DASH_NAV_TEXT_FAMILY) <= maxW) return text;
+        let t = String(text);
+        while (t.length > 1 &&
+            measureTextWidth(t + '...', size, 300, DASH_NAV_TEXT_FAMILY) > maxW) {
+            t = t.slice(0, -1);
+        }
+        return t + '...';
+    }
+
+    // перенос по словам максимум на 2 строки; излишек -> «...» в конце 2-й
+    function wrapTwoLines(text, size, maxW) {
+        const words = String(text).split(/\s+/);
+        let l1 = '';
+        let i = 0;
+        while (i < words.length) {
+            const cand = l1 ? l1 + ' ' + words[i] : words[i];
+            if (l1 && measureTextWidth(cand, size, 300, DASH_NAV_TEXT_FAMILY) > maxW) break;
+            l1 = cand; i++;
+        }
+        if (i >= words.length) return [l1];
+        return [l1, truncToWidth(words.slice(i).join(' '), size, maxW)];
+    }
+
+    // «Скопировать»: полный URL в буфер; визуального фидбека НЕТ
+    // (TODO-CLIENT: дизайн подтверждения копирования ожидается от клиента)
+    function copyToClipboard(text) {
+        function legacy() {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.append(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+            } catch (err) { /* буфер недоступен — молча (TODO-CLIENT) */ }
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(legacy);
+        } else {
+            legacy();
+        }
+    }
+
+    // РОБОТО-рендер для адаптивных ЦИФРОВЫХ значений: даты tab-pub (эталон:
+    // cap 14.4 = 0.711×20, «03.09.2025» 99.5 = табличный Roboto-advance) и
+    // числа статов (2.4-fix: эталонные ink-ширины «432»/«246» 72.4м =
+    // Roboto, а не Sora — Sora-цифры на ~14% шире и ломали колонку).
+    const TAB_ROBOTO_FAMILY = "'Roboto', Arial, sans-serif";
+    function renderTabRoboto(el, makSize, color, K) {
+        const t = el.dataset.text;
+        if (!t) return;
+        const size = makSize * K;
+        renderElementText(el, {
+            text: t,
+            size: size,
+            width: measureTextWidth(t, size, 300, TAB_ROBOTO_FAMILY) + 4,
+            height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
+            y: Math.round(size * 0.82),
+            weight: 300,
+            color: color,
+            family: TAB_ROBOTO_FAMILY,
+            useBitmapText: false
+        });
+    }
+
+    let tabPubBound = false;
+    function initTabPub() {
+        const view = document.querySelector('.tab-pub');
+        if (!view) return;
+        const ph = isPhoneView();
+        const K = ph ? PHONE_T : TAB_T;
+        // красный — замер своего эталона (планшетный jpg светлее телефонного)
+        const red = ph ? '#820407' : '#A60308';
+
+        const tt = view.querySelector('.tpub-title');
+        if (tt) renderTabText(tt, ph ? 20 : 25, 600, '#0F0800', ph ? 24.1 : 30.3, K);
+        const ts = view.querySelector('.tpub-sub');
+        if (ts) renderTabText(ts, ph ? 18 : 20, 300, '#7C7971', ph ? 22.2 : 25, K);
+        view.querySelectorAll('.tpub-h').forEach(function (el) {
+            const color = el.classList.contains('tpubh-copy') ? '#2076A2'
+                : el.classList.contains('tpubh-end') ? red : '#2E2F27';
+            renderTabText(el, 14, 400, color, null, K);
+        });
+
+        const box = document.getElementById('tabPubRows');
+        if (!box) return;
+        if (box.children.length !== PUB_ROWS.length) {
+            box.textContent = '';
+            PUB_ROWS.forEach(function (row) {
+                const tr = document.createElement('div');
+                tr.className = 'tpub-row';
+                const link = document.createElement('span');
+                link.className = 'tpub-link';
+                const copy = document.createElement('button');
+                copy.type = 'button';
+                copy.className = 'tpub-copy';
+                copy.dataset.url = row.url;
+                copy.dataset.text = 'Скопировать';
+                copy.setAttribute('aria-label', 'Скопировать ссылку');
+                const vac = document.createElement('span');
+                vac.className = 'tpub-vac';
+                const d1 = document.createElement('span');
+                d1.className = 'tpub-d1';
+                d1.dataset.text = pubDateDots(row.placed);
+                const d2 = document.createElement('span');
+                d2.className = 'tpub-d2';
+                d2.dataset.text = pubDateDots(row.removed);
+                tr.append(link, copy, vac, d1, d2);
+                box.append(tr);
+            });
+        }
+
+        // тексты строк: обрезка/перенос пересчитываются под режим (макет×K)
+        const rowSize = ph ? 20 : 21;
+        const linkMaxW = (ph ? 305 : 238) * K;
+        const vacMaxW = (ph ? 305 : 240) * K;
+        box.querySelectorAll('.tpub-row').forEach(function (tr, i) {
+            const row = PUB_ROWS[i];
+            if (!row) return;
+            const linkEl = tr.querySelector('.tpub-link');
+            // ссылка отображается без протокола (эталон: «yandex.ru/...»)
+            linkEl.dataset.text = truncToWidth(
+                row.url.replace(/^https?:\/\//, ''), rowSize * K, linkMaxW);
+            renderTabText(linkEl, rowSize, 300, '#7C7971', null, K);
+            renderTabText(tr.querySelector('.tpub-copy'), rowSize, 300, '#2076A2', null, K);
+            const vacEl = tr.querySelector('.tpub-vac');
+            vacEl.dataset.text = wrapTwoLines(row.vac, rowSize * K, vacMaxW).join('|');
+            renderTabText(vacEl, rowSize, 300, '#7C7971', ph ? 25.2 : 22, K);
+            renderTabRoboto(tr.querySelector('.tpub-d1'), 20, ph ? '#2E2F27' : '#7C7971', K);
+            renderTabRoboto(tr.querySelector('.tpub-d2'), 20, red, K);
+        });
+
+        if (!tabPubBound) {
+            tabPubBound = true;
+            box.addEventListener('click', function (e) {
+                const btn = e.target.closest('.tpub-copy');
+                if (!btn) return;
+                copyToClipboard(btn.dataset.url || '');
+            });
+        }
+        // активные фильтры (поиск/счета) — общее состояние с десктопом
+        applyPubSearch();
+    }
+
+    // ========================================================================
+    // Шаг 1.7 (G15): кнопка «вверх» — видна при scrollY > 400px (desktop),
+    // клик = плавный скролл наверх. Шаг 1.8-C: на мобильном (<800px) порог
+    // 100px; при открытой виртуальной клавиатуре (visualViewport.height
+    // заметно меньше layout-вьюпорта) кнопка прячется, при закрытии —
+    // возвращается. Без visualViewport — прежнее поведение (fallback).
     // ========================================================================
     let scrollTopBound = false;
     function initScrollTop() {
@@ -3476,13 +3975,29 @@
         }
         if (scrollTopBound) return;
         scrollTopBound = true;
+        const mobileMq = window.matchMedia('(max-width: 799.98px)');
+        let keyboardOpen = false;
         function sync() {
-            btn.classList.toggle('is-visible', window.scrollY > 400);
+            const threshold = mobileMq.matches ? 100 : 400;
+            btn.classList.toggle('is-visible',
+                window.scrollY > threshold && !(mobileMq.matches && keyboardOpen));
         }
         window.addEventListener('scroll', sync, { passive: true });
+        bindMqChange(mobileMq, sync);
+        if (window.visualViewport) {
+            const vv = window.visualViewport;
+            function syncKeyboard() {
+                // клавиатура «съедает» заметную долю вьюпорта; порог 150px
+                // отсекает адресную строку/мелкие колебания высоты
+                keyboardOpen = (window.innerHeight - vv.height) > 150;
+                sync();
+            }
+            vv.addEventListener('resize', syncKeyboard);
+            syncKeyboard();
+        }
         sync();
         btn.addEventListener('click', function () {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            smoothScrollTo(0);
         });
     }
 
@@ -3707,8 +4222,13 @@
         renderMidStaticText();
         initResumeTable();
         initResumeSearch();
+        initPubTable();
+        initPubSearch();
+        initPubToggle();
+        initViewCards();
         initAccountsPopup();
         initTabView();
+        initTabPub();
         renderUiTips(document);
         initUiTipClamp();
         initScrollTop();

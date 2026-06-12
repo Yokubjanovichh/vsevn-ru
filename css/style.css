@@ -121,7 +121,7 @@
 .vi-clear::after {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     background: url('../icons/clear/clear-hover.svg') center / contain no-repeat;
     opacity: 0;
     pointer-events: none;
@@ -267,7 +267,7 @@
 
 .static-icon-svg {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -548,7 +548,7 @@ a {
 .icon::before,
 .icon::after {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -705,7 +705,7 @@ a {
 
 .date-field.rendered .date-input {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     width: auto;
     height: auto;
     color: transparent;
@@ -1381,7 +1381,7 @@ a {
 .select-dropdown::after {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     border-radius: inherit;
     box-shadow:
         inset var(--ui-control-strong-line, calc(0.07813 * var(--fvw, 1vw))) 0 0 #0087FC,
@@ -2043,7 +2043,7 @@ a {
 
 .count-cell {
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -2299,7 +2299,7 @@ a {
 
 .zoom-hover-shield {
     position: fixed;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     z-index: 9998;
     background: transparent;
     cursor: default;
@@ -2443,7 +2443,7 @@ html.is-zoom-hover-blocked .date-calendar:not([hidden]) {
 .file-icon-btn .vi::after {
     content: "";
     position: absolute;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
@@ -2599,7 +2599,7 @@ body.log-preview-open {
 
 .log-preview-overlay {
     position: fixed;
-    inset: 0;
+    top: 0; right: 0; bottom: 0; left: 0;
     z-index: 3000;
     display: flex;
     align-items: flex-start;
@@ -3053,33 +3053,43 @@ body {
 /* Карта: слабая правая-нижняя подсветка (контроль: (1700,1100)=#F7EED1,
    (1825,1150)=#F8EDCF; у низа панели (1860,447) НЕ выше #F4EDD9).
    Центр (1800,1150) дизайн-px, peak≈0.26*0.75. Основной жёлтый glow — у .hero-panel. */
+/* 4-fix-3: Firefox режет filter:blur (~100px) — glow'ы пересобраны на
+   radial-gradient с гауссовым профилем (sigma=587.5: пик erf-модели 0.259,
+   стопы = I(t*R)/I(0), R = полуось+2.2sigma; центр прежний (1768,1121.5)) */
 .dash-card::before {
     content: '';
     position: absolute;
     z-index: 0;
-    left: calc(1494 * var(--dpx, 0.0520833vw));
-    top: calc(484 * var(--dpx, 0.0520833vw));
-    width: calc(548 * var(--dpx, 0.0520833vw));
-    height: calc(1275 * var(--dpx, 0.0520833vw));
-    background: #FFCD2A;
-    border-radius: 50%;
-    filter: blur(calc(587.5 * var(--dpx, 0.0520833vw)));
+    left: calc(201.5 * var(--dpx, 0.0520833vw));
+    top: calc(-808.5 * var(--dpx, 0.0520833vw));
+    width: calc(3133 * var(--dpx, 0.0520833vw));
+    height: calc(3860 * var(--dpx, 0.0520833vw));
+    background: radial-gradient(50% 50% at 50% 50%,
+        rgba(255, 205, 42, 0.259) 0%, rgba(255, 205, 42, 0.232) 18%,
+        rgba(255, 205, 42, 0.173) 34%, rgba(255, 205, 42, 0.108) 50%,
+        rgba(255, 205, 42, 0.056) 66%, rgba(255, 205, 42, 0.024) 82%,
+        rgba(255, 205, 42, 0) 100%);
     opacity: 0.75;
     pointer-events: none;
 }
 
 /* GLOW-2: левая нижняя подсветка (центр x=133, y=1020 — калибровка по макету) */
+/* 4-fix-2+3: вертикальный охват СЖАТ (видимый верх y=400 — ниже кнопок
+   сайдбара, низ snav ~350), низ/угол визуально прежние; гауссовы стопы
+   sigma=400 (пик 0.399), центр (101,1072), верт. радиус сжат до 672 */
 .dash-card::after {
     content: '';
     position: absolute;
     z-index: 0;
-    left: calc(-249 * var(--dpx, 0.0520833vw));
-    top: calc(542 * var(--dpx, 0.0520833vw));
-    width: calc(700 * var(--dpx, 0.0520833vw));
-    height: calc(900 * var(--dpx, 0.0520833vw));
-    background: #FFCD2A;
-    border-radius: 50%;
-    filter: blur(calc(400 * var(--dpx, 0.0520833vw)));
+    left: calc(-1129 * var(--dpx, 0.0520833vw));
+    top: calc(400 * var(--dpx, 0.0520833vw));
+    width: calc(2460 * var(--dpx, 0.0520833vw));
+    height: calc(1344 * var(--dpx, 0.0520833vw));
+    background: radial-gradient(50% 50% at 50% 50%,
+        rgba(255, 205, 42, 0.399) 0%, rgba(255, 205, 42, 0.354) 18%,
+        rgba(255, 205, 42, 0.261) 34%, rgba(255, 205, 42, 0.158) 50%,
+        rgba(255, 205, 42, 0.078) 66%, rgba(255, 205, 42, 0.032) 82%,
+        rgba(255, 205, 42, 0) 100%);
     opacity: 0.45;
     pointer-events: none;
 }
@@ -3113,7 +3123,8 @@ body {
     width: 100%;
     height: calc(75 * var(--dpx, 0.0520833vw));
     padding: 0;
-    background: #E6E5E3;
+    /* 4-fix-4: пассивная кнопка без заливки (контур/текст/иконка прежние) */
+    background: transparent;
     border: none;
     border-radius: calc(14 * var(--dpx, 0.0520833vw));
     box-shadow: inset 0 0 0 var(--ui-hairline, calc(1 * var(--dpx, 0.0520833vw))) rgba(124, 121, 113, 0.28);
@@ -3295,17 +3306,21 @@ body {
 
 /* GLOW-1: жёлтый эллипс ПАНЕЛИ (режется её радиусом 11.19; Figma 548x1275/blur 587.5).
    Центр панель-локально (1231, 518) = дизайн (1530, 560). */
+/* 4-fix-3: blur -> radial-gradient (Firefox), гауссовы стопы sigma=587.5,
+   центр панель-локально прежний (1231, 518) */
 .hero-panel::before {
     content: '';
     position: absolute;
     z-index: 0;
-    left: calc(957 * var(--dpx, 0.0520833vw));
-    top: calc(-119.5 * var(--dpx, 0.0520833vw));
-    width: calc(548 * var(--dpx, 0.0520833vw));
-    height: calc(1275 * var(--dpx, 0.0520833vw));
-    background: #FFCD2A;
-    border-radius: 50%;
-    filter: blur(calc(587.5 * var(--dpx, 0.0520833vw)));
+    left: calc(-335.5 * var(--dpx, 0.0520833vw));
+    top: calc(-1412 * var(--dpx, 0.0520833vw));
+    width: calc(3133 * var(--dpx, 0.0520833vw));
+    height: calc(3860 * var(--dpx, 0.0520833vw));
+    background: radial-gradient(50% 50% at 50% 50%,
+        rgba(255, 205, 42, 0.259) 0%, rgba(255, 205, 42, 0.232) 18%,
+        rgba(255, 205, 42, 0.173) 34%, rgba(255, 205, 42, 0.108) 50%,
+        rgba(255, 205, 42, 0.056) 66%, rgba(255, 205, 42, 0.024) 82%,
+        rgba(255, 205, 42, 0) 100%);
     pointer-events: none;
 }
 
@@ -3629,6 +3644,9 @@ body {
 
 .promo-num { height: calc(56 * var(--dpx, 0.0520833vw)); margin-top: calc(4 * var(--dpx, 0.0520833vw)); }
 
+/* этап 3 (B1): клик -> раздел публикаций + докрутка к заголовку таблицы.
+   3-fix (решение пользователя): hover как у «Посмотреть» (тёмный круг
+   #2F3027 + белая стрелка), но ПЛАВНО — transition 0.18s */
 .promo-arrow {
     margin-left: auto;
     padding: 0;
@@ -3638,6 +3656,10 @@ body {
     border-radius: 50%;
 }
 .promo-arrow svg { display: block; }
+.promo-arrow svg circle,
+.promo-arrow svg path { transition: fill 0.18s ease, stroke 0.18s ease; }
+.promo-arrow:hover svg circle { fill: #2F3027; }
+.promo-arrow:hover svg path { stroke: #FFFFFF; }
 
 .promo-sub {
     height: calc(23 * var(--dpx, 0.0520833vw));
@@ -3698,6 +3720,44 @@ body {
 
 /* baseline «Посмотреть» = верх круга + 20.6 (эталон) */
 .vcard-view { margin-top: calc(10.6 * var(--dpx, 0.0520833vw)); }
+
+/* ---- ШАГ 2.2 (P1): парный hover «Посмотреть» + стрелка-круг ----
+   Эталоны ref/image9.png (калибровка по cap слова, ×3.96; коллаж — круг
+   там в другом масштабе) + states-sheet: активное состояние ОДИНАКОВО
+   при наведении на слово и на круг; pressed на листе — та же заливка
+   #2F3027, отдельного стиля нет. Пара — через родителя .vcard-foot:
+   сам он мышь не ловит (pointer-events: none), дети ловят — пустой
+   промежуток между словом и кругом hover НЕ включает. */
+.vcard-foot { pointer-events: none; }
+
+.vcard-view,
+.vcard-arrow {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.vcard-view { position: relative; }
+
+/* пунктир под словом (замер image9 по cap-калибру): точка 1.26, шаг 2.53,
+   толщина 1.26, верх = baseline + 3.5 = 13.5 от верха svg (baseline 10);
+   цвет точек темнее текста — #161715 (замер центров точек) */
+.vcard-view::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(13.5 * var(--dpx, 0.0520833vw));
+    height: calc(1.26 * var(--dpx, 0.0520833vw));
+    background: repeating-linear-gradient(to right,
+        #161715 0 calc(1.26 * var(--dpx, 0.0520833vw)),
+        transparent calc(1.26 * var(--dpx, 0.0520833vw)) calc(2.53 * var(--dpx, 0.0520833vw)));
+    opacity: 0;
+}
+
+.vcard-foot:hover .vcard-view::after { opacity: 1; }
+/* перекраска поверх fill/stroke-атрибутов инлайн-SVG — без перерендера */
+.vcard-foot:hover .vcard-arrow svg circle { fill: #2F3027; }
+.vcard-foot:hover .vcard-arrow svg path { stroke: #FFFFFF; }
 
 /* ============================================================
    ШАГ 1.4: панель «Подобранные резюме соискателей»
@@ -3841,6 +3901,7 @@ body {
     /* защитная обрезка ТОЛЬКО по горизонтали (max-width per-колонке из
        RESUME_COLS.maxW); по вертикали ±8 свободы — оранжевая плашка
        подсветки (1.5) выступает выше cap-линии */
+    -webkit-clip-path: inset(calc(-8 * var(--dpx, 0.0520833vw)) 0 calc(-8 * var(--dpx, 0.0520833vw)) 0);
     clip-path: inset(calc(-8 * var(--dpx, 0.0520833vw)) 0 calc(-8 * var(--dpx, 0.0520833vw)) 0);
     overflow: visible;
 }
@@ -4138,15 +4199,47 @@ a.snav-logo { text-decoration: none; }
 .snav-exit:hover .snav-exit-icon svg path { fill: #DD5326; }
 
 /* ============================================================
+   ШАГ 2.1: панель «Дополнительные публикации вашего объявления
+   на сторонних площадках» (эталон Homies Lab_ru.jpg, коэф 4.0375;
+   в макете справа запечён скроллбар ~21.6px — правые элементы шапки
+   взяты по Figma-спеку resume-капсулы). Переиспользует стили
+   resume-таблицы; по умолчанию СКРЫТА (показ — dev-тумблер #pub,
+   переключение разделов — этап 3).
+   ============================================================ */
+.pub-panel { display: none; }
+body.pub-mode .resume-panel:not(.pub-panel) { display: none; }
+body.pub-mode .pub-panel { display: block; }
+
+/* заголовок: чернильный левый край Д = 27.2 панель-отн. (эталон ru;
+   у resume 32.8 — расхождение макетов, эталон выигрывает); top общий 43.7 */
+.pub-title { left: calc(27.2 * var(--dpx, 0.0520833vw)); }
+
+/* x колонок шапки — замеры ru (band-относительно, band ml 29.5 общий) */
+.pcol-1 { left: calc(18.8 * var(--dpx, 0.0520833vw)); }
+.pcol-2 { left: calc(559.2 * var(--dpx, 0.0520833vw)); }
+.pcol-3 { left: calc(759.6 * var(--dpx, 0.0520833vw)); }
+.pcol-4 { left: calc(1005.8 * var(--dpx, 0.0520833vw)); }
+.pcol-5 { left: calc(1203.4 * var(--dpx, 0.0520833vw)); }
+.pcol-6 { left: calc(1543.5 * var(--dpx, 0.0520833vw)); }
+
+/* ============================================================
    ШАГ 1.8-A: планшет 490–800 (эталон ref/image5, макет 852px;
    коэф в dpx = 1920/852 = 2.2535 — единая vw-система сохраняется,
    мобильные размеры записаны в dpx-эквиваленте). Десктоп ≥800px
    не затрагивается: всё внутри @media, .tab-view по умолчанию скрыт.
    ============================================================ */
 .tab-view { display: none; }
+/* шаг 2.4: адаптивная pub-таблица — на десктопе НИКОГДА не видна */
+.tab-pub { display: none; }
 
 @media (max-width: 799.98px) {
     .dash-top, .resume-panel { display: none; }
+    /* шаг 2.4: <800px десктопная pub-панель скрыта ВСЕГДА (перебивает
+       body.pub-mode .pub-panel { display: block }); вместо неё в pub-mode
+       показывается .tab-pub, а resume-таблица .ttable прячется */
+    body.pub-mode .pub-panel { display: none; }
+    body.pub-mode .ttable { display: none; }
+    body.pub-mode .tab-pub { display: block; }
     .tab-view { display: block; }
 
     /* fix: карта остаётся ДЕСКТОПНОЙ (#E7E5E3 + glow) — новый эталон
@@ -4184,7 +4277,10 @@ a.snav-logo { text-decoration: none; }
         cursor: pointer;
     }
 
-    .tnav-btn:hover { background: #EEE5CE; }   /* states-sheet жёлто-кремовый */
+    /* 4-fix: hover по states-sheet — кремовая заливка #EEE5CE, контур
+       сливается с фоном; активной (чёрной) кнопки не касается */
+    .tnav-btn { transition: background 0.18s ease, border-color 0.18s ease; }
+    .tnav-btn:not(.is-active):hover { background: #EEE5CE; border-color: #EEE5CE; }
     .tnav-btn.is-active {
         background: #2F3028;
         border-color: #2F3028;
@@ -4209,8 +4305,17 @@ a.snav-logo { text-decoration: none; }
         border-radius: calc(36 * var(--dpx, 0.0520833vw));
     }
 
-    /* overflow:hidden — страховка: подпись не заезжает в соседнюю колонку */
-    .tstat { min-width: 0; overflow: hidden; padding-right: calc(14 * var(--dpx, 0.0520833vw)); }
+    /* overflow:hidden — страховка: подпись не заезжает в соседнюю колонку.
+       2.4-fix: white-space:nowrap — чип и число НИКОГДА не складываются в
+       столбик (структурная защита); font-size:0 убирает реальные px
+       пробельных узлов между инлайн-спанами (вне vw-системы) */
+    .tstat {
+        min-width: 0;
+        overflow: hidden;
+        padding-right: calc(14 * var(--dpx, 0.0520833vw));
+        white-space: nowrap;
+        font-size: 0;
+    }
 
     .tstat-chip {
         display: inline-flex;
@@ -4219,7 +4324,8 @@ a.snav-logo { text-decoration: none; }
         vertical-align: bottom;
         width: calc(59 * var(--dpx, 0.0520833vw));
         height: calc(59 * var(--dpx, 0.0520833vw));
-        margin-right: calc(23 * var(--dpx, 0.0520833vw));
+        /* 2.4-fix: эталонный ink-зазор чип->число 10.3м минус lsb цифры */
+        margin-right: calc(19.8 * var(--dpx, 0.0520833vw));
         background: #DEDDD2;
         border-radius: calc(18 * var(--dpx, 0.0520833vw));
     }
@@ -4268,6 +4374,13 @@ a.snav-logo { text-decoration: none; }
     .ttable-title, .ttable-sub { margin: 0; font-size: 0; line-height: 0; }
     .ttable-sub { margin-top: calc(32 * var(--dpx, 0.0520833vw)); }
 
+    /* 3-fix: защита от вылезания за карту — заголовок по эталону доходит
+       до 5.6м от края контента (ink 1386 из 1410), запас рендера/дробные
+       пиксели зума выталкивали svg наружу; max-width + viewBox(meet) —
+       svg в худшем случае пропорционально ужимается, но не выходит */
+    .ttable-title .svg-label, .ttable-sub .svg-label,
+    .tpub-title .svg-label, .tpub-sub .svg-label { max-width: 100%; }
+
     .ttable-head {
         position: relative;
         margin-top: calc(52 * var(--dpx, 0.0520833vw));
@@ -4303,6 +4416,59 @@ a.snav-logo { text-decoration: none; }
     }
     .scroll-top > svg { width: 15px !important; height: 9.5px !important; }
     .scroll-top-text .svg-label { width: 42px !important; height: 15px !important; }
+
+    /* ---- ШАГ 2.4: адаптивная pub-таблица, планшет (tablet-links@4x,
+       макет-852 × TAB_T): панель x103..751, контент x115.5, заголовок
+       25/600 lh30.3, под 20/300, шапка 14/400, ряд h65 (2 строки:
+       baseline 28.2/50.2), разделитель — СВЕТЛАЯ линия 2м
+       rgba(255,255,255,.66) внизу ряда ---- */
+    .tab-pub {
+        margin-top: calc(84 * var(--dpx, 0.0520833vw));
+        padding: calc(18.7 * var(--dpx, 0.0520833vw)) calc(28.2 * var(--dpx, 0.0520833vw)) calc(25 * var(--dpx, 0.0520833vw));
+        background: rgba(255, 253, 244, 0.62);
+        border-radius: calc(27 * var(--dpx, 0.0520833vw));
+    }
+
+    .tpub-title, .tpub-sub, .tpub-h { margin: 0; font-size: 0; line-height: 0; }
+    .tpub-sub { margin-top: calc(16.2 * var(--dpx, 0.0520833vw)); }
+
+    .tpub-head {
+        position: relative;
+        margin-top: calc(23.4 * var(--dpx, 0.0520833vw));
+        height: calc(36 * var(--dpx, 0.0520833vw));
+    }
+    .tpub-h { position: absolute; top: 0; }
+    .tpubh-link { left: 0; }
+    .tpubh-copy { left: calc(318.4 * var(--dpx, 0.0520833vw)); }
+    .tpubh-vac { left: calc(574 * var(--dpx, 0.0520833vw)); }
+    .tpubh-start { left: calc(1159 * var(--dpx, 0.0520833vw)); }
+    .tpubh-end { left: calc(1288.3 * var(--dpx, 0.0520833vw)); }
+
+    .tpub-row { position: relative; height: calc(146.5 * var(--dpx, 0.0520833vw)); }
+    .tpub-row::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(4.5 * var(--dpx, 0.0520833vw));
+        background: rgba(255, 255, 255, 0.66);
+    }
+    .tpub-link, .tpub-copy, .tpub-vac, .tpub-d1, .tpub-d2 {
+        position: absolute;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        font-size: 0;
+        line-height: 0;
+    }
+    .tpub-copy { cursor: pointer; }
+    .tpub-link { left: 0; top: calc(24.9 * var(--dpx, 0.0520833vw)); }
+    .tpub-copy { left: 0; top: calc(74.5 * var(--dpx, 0.0520833vw)); }
+    .tpub-vac { left: calc(576.2 * var(--dpx, 0.0520833vw)); top: calc(24.9 * var(--dpx, 0.0520833vw)); }
+    .tpub-d1 { left: calc(1158.3 * var(--dpx, 0.0520833vw)); top: calc(26.7 * var(--dpx, 0.0520833vw)); }
+    .tpub-d2 { left: calc(1158.3 * var(--dpx, 0.0520833vw)); top: calc(76.3 * var(--dpx, 0.0520833vw)); }
 }
 
 /* ============================================================
@@ -4347,7 +4513,8 @@ a.snav-logo { text-decoration: none; }
     .tstat-chip {
         width: calc(99 * var(--dpx, 0.0520833vw));
         height: calc(99 * var(--dpx, 0.0520833vw));
-        margin-right: calc(50 * var(--dpx, 0.0520833vw));
+        /* 2.4-fix: эталонный ink-зазор чип->число 17.4м минус lsb цифры */
+        margin-right: calc(74 * var(--dpx, 0.0520833vw));
         border-radius: calc(30 * var(--dpx, 0.0520833vw));
     }
     .tstat-label { margin-top: calc(30 * var(--dpx, 0.0520833vw)); }
@@ -4370,9 +4537,39 @@ a.snav-logo { text-decoration: none; }
     }
     .ttable-sub { margin-top: calc(50 * var(--dpx, 0.0520833vw)); }
     .ttable-head { margin-top: calc(60 * var(--dpx, 0.0520833vw)); }
-    .tth-vac { position: static; display: inline-block; margin-left: calc(20 * var(--dpx, 0.0520833vw)); }
+    /* 2.4-fix: vertical-align:top — иначе разновысокие font-size:0 спаны
+       выравниваются по baseline и «Вакансия» съезжает ниже линии шапки */
+    .tth-vac { position: static; display: inline-block; vertical-align: top; margin-left: calc(20 * var(--dpx, 0.0520833vw)); }
 
     .trow { display: block; padding: calc(80 * var(--dpx, 0.0520833vw)) 0 0; }
     .trow-left { gap: calc(30 * var(--dpx, 0.0520833vw)); }
     .trow-vac { display: block; margin-top: calc(30 * var(--dpx, 0.0520833vw)); }
+
+    /* ---- ШАГ 2.4: pub-таблица, телефон (mobile-links@4x, макет-387 ×
+       PHONE_T): stacked-запись h138 (ссылка / Скопировать / вакансия 2стр /
+       даты рядом), «Вакансия» в шапке СКРЫТА, заголовок 20/600 lh24.1,
+       под 18/300, шапка 14/400, тексты строк 20, даты 19 ---- */
+    .tab-pub {
+        margin-top: calc(49.6 * var(--dpx, 0.0520833vw));
+        padding: calc(92.3 * var(--dpx, 0.0520833vw)) calc(69.5 * var(--dpx, 0.0520833vw)) calc(49.6 * var(--dpx, 0.0520833vw));
+        border-radius: calc(60 * var(--dpx, 0.0520833vw));
+    }
+    .tpub-sub { margin-top: calc(26.8 * var(--dpx, 0.0520833vw)); }
+    .tpub-head {
+        margin-top: calc(81.4 * var(--dpx, 0.0520833vw));
+        height: calc(79.4 * var(--dpx, 0.0520833vw));
+    }
+    .tpubh-copy { left: calc(698.7 * var(--dpx, 0.0520833vw)); }
+    .tpubh-vac { display: none; }
+    .tpubh-start { left: calc(1167 * var(--dpx, 0.0520833vw)); }
+    /* 3-fix: эталонный ink-зазор «Начало|End» = 5м (End ink x=287м) */
+    .tpubh-end { left: calc(1418 * var(--dpx, 0.0520833vw)); }
+
+    .tpub-row { height: calc(684.8 * var(--dpx, 0.0520833vw)); }
+    .tpub-row::after { height: calc(9.9 * var(--dpx, 0.0520833vw)); }
+    .tpub-link { top: calc(55.1 * var(--dpx, 0.0520833vw)); }
+    .tpub-copy { left: 0; top: calc(183.6 * var(--dpx, 0.0520833vw)); }
+    .tpub-vac { left: 0; top: calc(290.8 * var(--dpx, 0.0520833vw)); }
+    .tpub-d1 { left: 0; top: calc(534.9 * var(--dpx, 0.0520833vw)); }
+    .tpub-d2 { left: calc(551.8 * var(--dpx, 0.0520833vw)); top: calc(534.9 * var(--dpx, 0.0520833vw)); }
 }
