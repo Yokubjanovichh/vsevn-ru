@@ -5256,15 +5256,23 @@ function renderUiTips(root) {
 // Шаг 1.2: параметрический gauge. Геометрия фиксирована (снята с gauge@hq.png),
 // дуги/ручка/центральный текст пересчитываются из data-value / data-max /
 // data-label-prefix контейнера .hero-gauge. Повторный вызов = обновление.
+// 6-fix-9/10: gauge — Figma SVG inline + центр-текст по Figma-спеку:
+// геометрия SARIQ дуги/knob в Figma viewBox 316×316 (cx=160, cy=160, r=148.2),
+// текст (prefix/value/sub) — во внешнем viewBox 510×390 (textCx=230).
+// Spec: prefix 44/100/ls-4%/lh100% #7C7971; value 44.67/400/ls-4% #2F3027;
+// sub 19.24/300/ls-4% #7C7971. КОМПОЗИЦИЯ «на 380%» центрируется по сумме.
 const GAUGE_GEOMETRY = {
-  cx: 230,
-  cy: 205,
-  r: 143.5,
-  startDeg: 134.8, // позиция «00»
-  endDeg: 405.1, // позиция «500» (45.1° + 360)
-  valueSize: 44,
-  valueWeight: 300,
-  prefixGap: 15, // зазор «На» → значение (60px этал. / 4.09)
+  cx: 160,
+  cy: 160,
+  r: 148.2,
+  startDeg: 135.1, // «00»
+  endDeg: 405.1, // «500»
+  prefixSize: 44,
+  prefixWeight: 100,
+  valueSize: 44.67,
+  valueWeight: 400,
+  prefixGap: 10,
+  textCx: 230, // outer viewBox центр блока (выровнен с центром кольца ~231.8)
 };
 
 function gaugePoint(deg) {
@@ -5310,45 +5318,62 @@ function initGauge() {
       ratio * (GAUGE_GEOMETRY.endDeg - GAUGE_GEOMETRY.startDeg);
 
     const progress = svg.querySelector(".gauge-progress");
+    const progressShadow = svg.querySelector(".gauge-progress-shadow");
     const track = svg.querySelector(".gauge-track");
+    // 6-fix-16: shadow — отдельный <path> под sariq (duplicate-path техника,
+    // halo'siz). Ikkala path uchun bir xil d, lekin shadow translate(3.9 3.9)
+    // bilan SVG transform da, blur filter ostida.
+    const arcD = ratio > 0 ? gaugeArcPath(GAUGE_GEOMETRY.startDeg, knobDeg) : "";
     if (progress) {
       progress.style.display = ratio > 0 ? "" : "none";
-      if (ratio > 0)
-        progress.setAttribute(
-          "d",
-          gaugeArcPath(GAUGE_GEOMETRY.startDeg, knobDeg),
-        );
+      if (ratio > 0) progress.setAttribute("d", arcD);
     }
-    if (track) {
-      track.style.display = ratio < 1 ? "" : "none";
-      if (ratio < 1)
-        track.setAttribute("d", gaugeArcPath(knobDeg, GAUGE_GEOMETRY.endDeg));
+    if (progressShadow) {
+      progressShadow.style.display = ratio > 0 ? "" : "none";
+      if (ratio > 0) progressShadow.setAttribute("d", arcD);
     }
+    // 6-fix-9: track — статика Figma (синяя дуга 270°), JS её НЕ трогает
 
     const knob = gaugePoint(knobDeg);
-    svg.querySelectorAll(".gauge-knob circle").forEach(function (c) {
-      c.setAttribute("cx", knob.x.toFixed(1));
-      c.setAttribute("cy", knob.y.toFixed(1));
-    });
+    // 6-fix-9: knob — Figma SVG group (центр на 23.4338,23.4338), сдвигаем
+    // group transform-ом (а не circle cx/cy, как раньше с manual 2 кругами)
+    const knobG = svg.querySelector(".gauge-knob");
+    if (knobG) {
+      knobG.setAttribute(
+        "transform",
+        "translate(" + (knob.x - 23.4338).toFixed(2) + " " + (knob.y - 23.4338).toFixed(2) + ")"
+      );
+    }
 
-    // центр: значение по центру кольца, префикс слева от него
+    // 6-fix-10: блок «на 380%» — единый, центрируется по сумме ink-ширин
+    // (а не каждая часть отдельно). Sub-матn alohida o'z markazida cx-ga.
     const valueText = svg.querySelector(".gauge-value");
     const prefixText = svg.querySelector(".gauge-prefix");
     const valueStr = String(value) + "%";
     if (valueText) valueText.textContent = valueStr;
-    if (prefixText) {
-      prefixText.textContent = box.dataset.labelPrefix || "";
-      const valueWidth = measureTextWidth(
+    if (prefixText && valueText) {
+      const prefixStr = box.dataset.labelPrefix || "";
+      prefixText.textContent = prefixStr;
+      const prefixW = measureTextWidth(
+        prefixStr,
+        GAUGE_GEOMETRY.prefixSize,
+        GAUGE_GEOMETRY.prefixWeight,
+        DASH_NAV_TEXT_FAMILY,
+      );
+      const valueW = measureTextWidth(
         valueStr,
         GAUGE_GEOMETRY.valueSize,
         GAUGE_GEOMETRY.valueWeight,
         DASH_NAV_TEXT_FAMILY,
       );
-      prefixText.setAttribute(
+      const totalW = prefixW + GAUGE_GEOMETRY.prefixGap + valueW;
+      const blockLeft = GAUGE_GEOMETRY.textCx - totalW / 2;
+      // prefix anchor="end" -> x = chap-chet + prefixW
+      prefixText.setAttribute("x", (blockLeft + prefixW).toFixed(2));
+      // value anchor="middle" -> x = chap-chet + prefixW + gap + valueW/2
+      valueText.setAttribute(
         "x",
-        (GAUGE_GEOMETRY.cx - valueWidth / 2 - GAUGE_GEOMETRY.prefixGap).toFixed(
-          1,
-        ),
+        (blockLeft + prefixW + GAUGE_GEOMETRY.prefixGap + valueW / 2).toFixed(2)
       );
     }
   });

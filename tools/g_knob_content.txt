@@ -1,0 +1,6 @@
+<g filter="url(#filter0_dii_1_582_knob)">
+<circle cx="23.4338" cy="23.4338" r="19.5282" fill="#FFCD2A"/>
+</g>
+<g filter="url(#filter1_ii_1_582_knob)">
+<circle cx="23.4337" cy="23.4336" r="14.3207" fill="white"/>
+</g>
