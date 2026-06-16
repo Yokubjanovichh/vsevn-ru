@@ -3366,11 +3366,14 @@ function renderMidStaticText() {
           return t.trim();
         })
         .filter(Boolean);
-      let w = 0;
+      let inkW = 0;
       lines.forEach(function (l) {
-        w = Math.max(w, measureTextWidth(l, spec.size, spec.weight, family));
+        inkW = Math.max(inkW, measureTextWidth(l, spec.size, spec.weight, family));
       });
-      w += 4;
+      const w = inkW + 4;
+      // 6-fix-19: ink-eni CSS-var sifatida — ::after pseudo elementlar
+      // (masalan .vcard-view dotted underline) matn uzunligida cheklash uchun
+      el.style.setProperty("--ink-w", inkW.toFixed(2));
       renderElementText(el, {
         text: lines.join(" "),
         lines: lines.length > 1 ? lines : undefined,
@@ -3790,10 +3793,31 @@ function resumeColSize(key) {
 // R2: фильтр в реальном времени над RESUME_ROWS; пустой результат —
 // таблица без строк (полоса колонок остаётся).
 function applyResumeSearch() {
-  const input = document.querySelector(".resume-search-input");
+  // 6-fix-77: PC va Mobile input ikkalasidan ham o'qiymiz (qaysi mavjud
+  // bo'lsa qiymati ishlatiladi — responsive context).
+  const pcInput = document.querySelector(
+    ".resume-search:not(.pub-search) .resume-search-input",
+  );
+  const mobInput = document.querySelector(".tsearch--resume .tsearch-input");
+  const inputVal =
+    (pcInput && pcInput.value) || (mobInput && mobInput.value) || "";
+  const q = inputVal.trim().toLowerCase();
+  // 6-fix-77: adaptiv .trow qatorlarini ham filtr qilamiz (PC bilan teng)
+  const trowBox = document.getElementById("ttableRows");
+  if (trowBox) {
+    trowBox.querySelectorAll(".trow").forEach(function (tr, i) {
+      const row = RESUME_ROWS[i];
+      if (!row) return;
+      const nameR = q ? wordPrefixRanges(row.name, q) : [];
+      const vacR = q ? wordPrefixRanges(row.vacancy, q) : [];
+      const searchOk = !q || nameR.length || vacR.length;
+      const accOk =
+        !accountFilterSet.size || accountFilterSet.has(row.account);
+      tr.style.display = searchOk && accOk ? "" : "none";
+    });
+  }
   const box = document.getElementById("resumeRows");
-  if (!input || !box) return;
-  const q = input.value.trim().toLowerCase();
+  if (!box) return;
   box.querySelectorAll(".resume-row").forEach(function (tr, i) {
     const row = RESUME_ROWS[i];
     if (!row) return;
@@ -3866,6 +3890,59 @@ function initResumeSearch() {
   // повторный проход renderStaticText (fonts.ready): активный запрос
   // перерисовывается с подсветкой по свежим метрикам
   if (input.value) applyResumeSearch();
+}
+
+// 6-fix-77 (mijoz iltimosi): mobile/planshet qidiruv kapsulasi
+// (.tsearch--resume / .tsearch--pub). PC bilan teng UX, qiymat sinxron.
+let tsearchBound = false;
+function initTSearch() {
+  if (tsearchBound) return;
+  const resumeWrap = document.querySelector(".tsearch--resume");
+  const pubWrap = document.querySelector(".tsearch--pub");
+  if (!resumeWrap && !pubWrap) return;
+  tsearchBound = true;
+  if (resumeWrap) bindTSearchHandlers(resumeWrap, "resume");
+  if (pubWrap) bindTSearchHandlers(pubWrap, "pub");
+}
+
+function bindTSearchHandlers(wrap, scope) {
+  const input = wrap.querySelector(".tsearch-input");
+  const clearBtn = wrap.querySelector(".tsearch-clear");
+  if (!input) return;
+  const pcSelector =
+    scope === "resume"
+      ? ".resume-search:not(.pub-search) .resume-search-input"
+      : ".pub-search .resume-search-input";
+  function syncToPC() {
+    const pcInput = document.querySelector(pcSelector);
+    if (pcInput && pcInput.value !== input.value) pcInput.value = input.value;
+  }
+  function applyScope() {
+    if (scope === "resume") applyResumeSearch();
+    else applyPubSearch();
+  }
+  input.addEventListener("input", function () {
+    wrap.classList.toggle("has-value", input.value.length > 0);
+    if (clearBtn) clearBtn.hidden = input.value.length === 0;
+    syncToPC();
+    applyScope();
+  });
+  input.addEventListener("focus", function () {
+    wrap.classList.add("is-focused");
+  });
+  input.addEventListener("blur", function () {
+    wrap.classList.remove("is-focused");
+  });
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      input.value = "";
+      wrap.classList.remove("has-value");
+      clearBtn.hidden = true;
+      syncToPC();
+      applyScope();
+    });
+  }
 }
 
 // ========================================================================
@@ -4199,10 +4276,16 @@ function pubRowMatches(row, q) {
 }
 
 function applyPubSearch() {
-  const input = document.querySelector(".pub-search .resume-search-input");
+  // 6-fix-77: PC va Mobile input ikkalasidan ham o'qiymiz.
+  const pcInput = document.querySelector(
+    ".pub-search .resume-search-input",
+  );
+  const mobInput = document.querySelector(".tsearch--pub .tsearch-input");
+  const inputVal =
+    (pcInput && pcInput.value) || (mobInput && mobInput.value) || "";
+  const q = inputVal.trim().toLowerCase();
   const box = document.getElementById("pubRows");
-  if (!input || !box) return;
-  const q = input.value.trim().toLowerCase();
+  if (!box) return;
   box.querySelectorAll(".resume-row").forEach(function (tr, i) {
     const row = PUB_ROWS[i];
     if (row) tr.style.display = pubRowMatches(row, q) ? "" : "none";
@@ -4373,8 +4456,10 @@ function initPubToggle() {
 // строк в таблице (Св000000001944) = 20 записей, даты = даты счетов
 // таблицы в формате DD.MM.YYYY, порядок: УБЫВАНИЕ даты.
 // ========================================================================
-const ACC_ROW_H = 46.3;
-const ACC_VISIBLE = 10;
+// 6-fix-26 (Group 2103.jpg etalon, S=4): row_h 200px/4=50dpx (eski 46.3),
+// 8 qator ko'rinadi (eski 10) — etalon popup body h=1600px/4=400dpx = 8×50
+const ACC_ROW_H = 50;
+const ACC_VISIBLE = 8;
 
 const ACCOUNTS = [
   { num: "Св000000001944", date: "20.01.2025" },
@@ -4795,7 +4880,15 @@ function formatPhoneIntl(p) {
   );
 }
 
-function renderTabText(el, makSize, weight, color, makLh, koef) {
+// 6-fix-51 (Figma tab-pub spec): family — optsional argument (default
+// DASH_NAV_TEXT_FAMILY ham backward-compat). Onest-first stack uchun
+// "'Onest', sans-serif" yuborish mumkin.
+// 6-fix-63/74 BUG-FIX: renderElementText `element.dataset.text = text` qayta
+// yozadi (text = lines.join(" ") — pipe yo'q). Yechim: render'dan oldin
+// data-text/data-text-phone qiymatlarni saqlab, render'dan KEYIN RESTORE
+// qilamiz. Bu pipe-multi-line (tstat-label «Всего|дополнительных|...») va
+// trunc-text (tpub-link "yandex.ru/daily?utm_so...") ikkalasi uchun ishlaydi.
+function renderTabText(el, makSize, weight, color, makLh, koef, family) {
   const T = koef || TAB_T;
   // телефонный вариант текста (другой перенос/формулировка), если есть
   const raw =
@@ -4803,6 +4896,10 @@ function renderTabText(el, makSize, weight, color, makLh, koef) {
       ? el.dataset.textPhone
       : el.dataset.text;
   if (!raw) return;
+  // 6-fix-74: original data-text/data-text-phone ni save (render'dan keyin restore)
+  const origText = el.dataset.text;
+  const origTextPhone = el.dataset.textPhone;
+  const fam = family || DASH_NAV_TEXT_FAMILY;
   const size = makSize * T;
   const lh = (makLh || makSize * 1.3) * T;
   const lines = raw
@@ -4813,7 +4910,7 @@ function renderTabText(el, makSize, weight, color, makLh, koef) {
     .filter(Boolean);
   let w = 0;
   lines.forEach(function (l) {
-    w = Math.max(w, measureTextWidth(l, size, weight, DASH_NAV_TEXT_FAMILY));
+    w = Math.max(w, measureTextWidth(l, size, weight, fam));
   });
   renderElementText(el, {
     text: lines.join(" "),
@@ -4825,25 +4922,38 @@ function renderTabText(el, makSize, weight, color, makLh, koef) {
     y: Math.round(size * 0.82),
     weight: weight,
     color: color,
-    family: DASH_NAV_TEXT_FAMILY,
+    family: fam,
     lineHeight: lh,
     useBitmapText: false,
   });
+  // 6-fix-74: restore data-text/data-text-phone (renderElementText qayta
+  // yozadi lines.join(" ") bilan; original pipe-text yo'qolmasin va
+  // tab-pub trunc-text har resize'da yangidan o'qilsin).
+  if (origText !== undefined) el.dataset.text = origText;
+  if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
 }
 
 function initTabView() {
   const view = document.querySelector(".tab-view");
   if (!view) return;
 
-  // чипы статов: клоны официальных глифов из hero-блока (data-driven,
-  // без дублирования ассетов)
+  // чипы статов: клоны официальных глифов из hero-блока (data-driven
+  // через data-chip атрибут — без дублирования ассетов).
+  // 6-fix-39: i-индексный clone сломался при добавлении 2-го блока
+  // .tstats--pub (chip 4..7 получали heroIcons[undefined] и оставались
+  // пустыми). Новая схема: data-chip → CHIP_INDEX → heroIcons[idx],
+  // работает для N блоков и устойчива к перестановкам.
   const heroIcons = document.querySelectorAll(".hero-stat-ico svg");
-  view.querySelectorAll(".tstat-chip").forEach(function (chip, i) {
-    if (!chip.firstElementChild && heroIcons[i]) {
-      const c = heroIcons[i].cloneNode(true);
-      c.removeAttribute("style");
-      chip.append(c);
-    }
+  const CHIP_INDEX = { people: 0, account: 1, percent: 2, calendar: 3 };
+  view.querySelectorAll(".tstat-chip").forEach(function (chip) {
+    if (chip.firstElementChild) return;
+    const stat = chip.closest(".tstat");
+    const key = stat && stat.dataset.chip;
+    const idx = CHIP_INDEX[key];
+    if (idx === undefined || !heroIcons[idx]) return;
+    const c = heroIcons[idx].cloneNode(true);
+    c.removeAttribute("style");
+    chip.append(c);
   });
 
   // кегли/цвета: планшет — замеры tablet-resume@4x (852-баз. макет-px),
@@ -4852,45 +4962,127 @@ function initTabView() {
   const K = ph ? PHONE_T : TAB_T;
   view.querySelectorAll(".tnav-text").forEach(function (el) {
     const active = el.closest(".tnav-btn").classList.contains("is-active");
+    // 6-fix-34/59 (Figma spec): telefon Onest 600 / 20, planshet Onest 400 / 20.
+    // Ikkala rejimda lh 100% (= size). Family Onest-first stack.
     renderTabText(
       el,
-      ph ? 16 : 19,
-      400,
+      20,
+      ph ? 600 : 400,
       active ? "#FFFFFF" : "#7B786F",
-      null,
+      20,
       K,
+      "'Onest', sans-serif",
     );
   });
   // 2.4-fix: числа статов — Roboto 45/46 (эталонные cap 31.8/32.8 и
-  // ink-ширины = Roboto; Sora 47/45 был шире эталона и ломал колонку)
+  // ink-ширины = Roboto; Sora 47/45 был шире эталона и ломал колонку).
+  // 6-fix-43 (Figma telefon-spec): telefon Onest 300 / 41.36 mobile-px / lh100%.
+  // Planshet saqlangan (Arial 300/45 default — eski jadval-sig'ish kalibri).
+  // 6-fix-47/58/60/64: tightHeight=true — chip+num bottom-aligned. Onest 300.
+  // 6-fix-64 (Figma planshet-spec): planshet va telefon AYNAN TENG (41.36/300).
   view.querySelectorAll(".tstat-num").forEach(function (el) {
-    renderTabDigits(el, ph ? 46 : 45, "#2F3028", K);
+    renderTabDigits(
+      el,
+      41.36,
+      "#2F3028",
+      K,
+      "'Onest', sans-serif",
+      300,
+      true,
+    );
   });
-  // Figma-спек: 16.5/400 (cap-замер эталона 16.6 ✓), шаг строк 22 (эталон)
+  // 6-fix-42/60/64 (Figma spec): planshet va telefon AYNAN TENG —
+  // Onest 400 / 16.5 mobile-px / lh 16.5 (100%) / #7C7971.
   view.querySelectorAll(".tstat-label").forEach(function (el) {
-    renderTabText(el, ph ? 16 : 16.5, 400, "#7C7971", ph ? 20 : 22, K);
+    renderTabText(el, 16.5, 400, "#7C7971", 16.5, K, "'Onest', sans-serif");
   });
+  // 6-fix-49 (Figma telefon-spec):
+  // - name: Onest 300 / 20 mobile-px / lh100% / #F3F3F3
+  // - inn:  Onest 300 / 18 mobile-px / lh100% / #ADADAD
+  // 6-fix-66 (Figma planshet-spec):
+  // - name: Onest 300 / 33.33 mobile-px / lh100% / #F3F3F3
+  // - inn:  Onest 300 / 23.83 mobile-px / lh100% / #ADADAD
   const nm = view.querySelector(".tcompany-name");
-  if (nm) renderTabText(nm, ph ? 21 : 34, 300, "#F5F2EA", null, K);
+  if (nm)
+    renderTabText(
+      nm,
+      ph ? 20 : 33.33,
+      300,
+      "#F3F3F3",
+      ph ? 20 : 33.33,
+      K,
+      "'Onest', sans-serif",
+    );
   const inn = view.querySelector(".tcompany-inn");
-  if (inn) renderTabText(inn, ph ? 19 : 25, 300, "#AEAEB0", null, K);
+  if (inn)
+    renderTabText(
+      inn,
+      ph ? 18 : 23.83,
+      300,
+      "#ADADAD",
+      ph ? 18 : 23.83,
+      K,
+      "'Onest', sans-serif",
+    );
+  // 6-fix-53/58 (Figma spec, telefon+planshet teng stil, faqat o'lchamlar mos):
+  // Onest-first stack ikkala rejimda. Weights, ranglar, lh 100% — Figma spec.
+  const onestTab = "'Onest', sans-serif";
   const tt = view.querySelector(".ttable-title");
-  if (tt) renderTabText(tt, ph ? 20.5 : 25, 600, "#0F0800", ph ? 24 : 30.3, K);
+  if (tt)
+    renderTabText(
+      tt,
+      ph ? 20 : 25,
+      500,
+      "#110803",
+      ph ? 20 : 25,
+      K,
+      onestTab,
+    );
   const ts = view.querySelector(".ttable-sub");
-  if (ts) renderTabText(ts, ph ? 19 : 22, 300, "#7C7971", ph ? 22.5 : 25, K);
+  if (ts)
+    renderTabText(
+      ts,
+      ph ? 18 : 22,
+      300,
+      "#7C7971",
+      ph ? 18 : 22,
+      K,
+      onestTab,
+    );
   const thn = view.querySelector(".tth-name");
-  if (thn) renderTabText(thn, ph ? 14 : 18.5, 400, "#55534C", null, K);
+  if (thn)
+    renderTabText(
+      thn,
+      ph ? 13.05 : 14,
+      500,
+      "#2F3027",
+      ph ? 13.05 : 14,
+      K,
+      onestTab,
+    );
   const thp = view.querySelector(".tth-phone");
-  if (thp) renderTabText(thp, ph ? 14 : 18.5, 400, "#1F76A3", null, K);
+  if (thp)
+    renderTabText(
+      thp,
+      ph ? 13.05 : 14,
+      500,
+      "#2076A2",
+      ph ? 13.05 : 14,
+      K,
+      onestTab,
+    );
+  // 6-fix-68 (Group 143.jpg planshet etalon): tth-vac planshet QORA (etalon),
+  // telefon QIZIL (eski) — etalonда farq qiladi.
   const thv = view.querySelector(".tth-vac");
   if (thv)
     renderTabText(
       thv,
-      ph ? 14 : 18.5,
-      400,
-      ph ? "#820407" : "#55534C",
-      null,
+      ph ? 13.05 : 14,
+      500,
+      ph ? "#850408" : "#2F3027",
+      ph ? 13.05 : 14,
       K,
+      onestTab,
     );
 
   const box = document.getElementById("ttableRows");
@@ -4916,14 +5108,25 @@ function initTabView() {
       box.append(tr);
     });
   }
+  // 6-fix-53/58: Onest 300 (link/phone) va 400 (vac), lh 22 mobile-px ikkala rejim.
   box.querySelectorAll(".trow-name").forEach(function (el) {
-    renderTabText(el, ph ? 18 : 21, 300, "#7C7971", null, K);
+    renderTabText(el, ph ? 20 : 21, 300, "#7C7971", 22, K, onestTab);
   });
   box.querySelectorAll(".trow-phone").forEach(function (el) {
-    renderTabText(el, ph ? 18 : 20, 300, "#1F76A3", null, K);
+    renderTabText(el, ph ? 20 : 20, 300, "#2076A2", 22, K, onestTab);
   });
+  // 6-fix-68 (Group 143.jpg planshet etalon): trow-vac planshet KULRANG +
+  // weight 300 Light, telefon QIZIL + weight 400 (eski) — etalon farqlar.
   box.querySelectorAll(".trow-vac").forEach(function (el) {
-    renderTabText(el, ph ? 18 : 21, 300, ph ? "#820407" : "#7C7971", null, K);
+    renderTabText(
+      el,
+      ph ? 20 : 21,
+      ph ? 400 : 300,
+      ph ? "#820407" : "#7C7971",
+      22,
+      K,
+      onestTab,
+    );
   });
 
   // fix-overflow: пересечение ЛЮБОГО брейкпоинта (800 и 490) гонит
@@ -5031,19 +5234,28 @@ function copyToClipboard(text) {
 // ТЗ-6: ЦИФРЫ остаются Arial — Onest-цифры нетабличные и шире
     // (246: 1.812em vs 1.669em; колонка статов 268.8>256, даты 108.7>107.2)
     const TAB_DIGIT_FAMILY = "Arial, sans-serif";
-function renderTabDigits(el, makSize, color, K) {
+// 6-fix-43: family/weight optsional argumentlar qo'shildi — tstat-num
+// uchun Onest 300 (Figma telefon-spec), tab-pub sanalari uchun default
+// Arial 300 (eski tabular-sig'ish kalibri saqlangan).
+// 6-fix-47: tightHeight optsional — descender pad olib tashlanadi (height
+// faqat cap), shu bilan SVG box-bottom = digit-baseline. Inline-flow'da
+// chip-fon va num-glif bottom-edge bir xil chiziqda turadi (Image #29 fix).
+function renderTabDigits(el, makSize, color, K, family, weight, tightHeight) {
   const t = el.dataset.text;
   if (!t) return;
+  const fam = family || TAB_DIGIT_FAMILY;
+  const wt = weight || 300;
   const size = makSize * K;
+  const cap = Math.ceil(size * 0.82);
   renderElementText(el, {
     text: t,
     size: size,
-    width: measureTextWidth(t, size, 300, TAB_DIGIT_FAMILY) + 4,
-    height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
-    y: Math.round(size * 0.82),
-    weight: 300,
+    width: measureTextWidth(t, size, wt, fam) + 4,
+    height: tightHeight ? cap : cap + Math.ceil(size * 0.28),
+    y: cap,
+    weight: wt,
     color: color,
-    family: TAB_DIGIT_FAMILY,
+    family: fam,
     useBitmapText: false,
   });
 }
@@ -5057,17 +5269,47 @@ function initTabPub() {
   // красный — замер своего эталона (планшетный jpg светлее телефонного)
   const red = ph ? "#820407" : "#A60308";
 
+  // 6-fix-51/58 (Figma spec, telefon+planshet teng stil): Onest stack ikkala.
+  const onest = "'Onest', sans-serif";
   const tt = view.querySelector(".tpub-title");
-  if (tt) renderTabText(tt, ph ? 20 : 25, 600, "#0F0800", ph ? 24.1 : 30.3, K);
+  if (tt)
+    renderTabText(
+      tt,
+      ph ? 20 : 25,
+      500,
+      "#110803",
+      ph ? 20 : 25,
+      K,
+      onest,
+    );
   const ts = view.querySelector(".tpub-sub");
-  if (ts) renderTabText(ts, ph ? 18 : 20, 300, "#7C7971", ph ? 22.2 : 25, K);
+  if (ts)
+    renderTabText(
+      ts,
+      ph ? 18 : 20,
+      300,
+      "#7C7971",
+      ph ? 18 : 20,
+      K,
+      onest,
+    );
+  // 6-fix-51/58: tpub-h Onest 500, lh 100%, ranglar Figma spec (tpubh-link/
+  // copy/start/end + vac saqlangan).
   view.querySelectorAll(".tpub-h").forEach(function (el) {
     const color = el.classList.contains("tpubh-copy")
       ? "#2076A2"
       : el.classList.contains("tpubh-end")
-        ? red
-        : "#2E2F27";
-    renderTabText(el, 14, 400, color, null, K);
+        ? "#850408"
+        : "#2F3027";
+    renderTabText(
+      el,
+      ph ? 13.05 : 14,
+      500,
+      color,
+      ph ? 13.05 : 14,
+      K,
+      onest,
+    );
   });
 
   const box = document.getElementById("tabPubRows");
@@ -5112,25 +5354,41 @@ function initTabPub() {
       rowSize * K,
       linkMaxW,
     );
-    renderTabText(linkEl, rowSize, 300, "#7C7971", null, K);
+    // 6-fix-51/58: link/copy/vac Onest, lh 22 mobile-px ikkala rejim.
+    // vac weight 400 (Regular), link va copy 300 (Light).
+    renderTabText(linkEl, rowSize, 300, "#7C7971", 22, K, onest);
     renderTabText(
       tr.querySelector(".tpub-copy"),
       rowSize,
       300,
       "#2076A2",
-      null,
+      22,
       K,
+      onest,
     );
     const vacEl = tr.querySelector(".tpub-vac");
     vacEl.dataset.text = wrapTwoLines(row.vac, rowSize * K, vacMaxW).join("|");
-    renderTabText(vacEl, rowSize, 300, "#7C7971", ph ? 25.2 : 22, K);
+    renderTabText(vacEl, rowSize, 400, "#7C7971", 22, K, onest);
+    // 6-fix-51/58: sanalar Onest 300 tightHeight=true (baseline alignment)
+    // ikkala rejim (eski Arial tabular olib tashlandi).
     renderTabDigits(
       tr.querySelector(".tpub-d1"),
       20,
-      ph ? "#2E2F27" : "#7C7971",
+      "#2E2F27",
       K,
+      "'Onest', sans-serif",
+      300,
+      true,
     );
-    renderTabDigits(tr.querySelector(".tpub-d2"), 20, red, K);
+    renderTabDigits(
+      tr.querySelector(".tpub-d2"),
+      20,
+      red,
+      K,
+      "'Onest', sans-serif",
+      300,
+      true,
+    );
   });
 
   if (!tabPubBound) {
@@ -5158,13 +5416,18 @@ function initScrollTop() {
   if (!btn) return;
   const txt = btn.querySelector(".scroll-top-text");
   if (txt) {
+    // 6-fix-31: SVG ichida text default anchor="start" (x=0) — chap chetga
+    // yopishib qolar edi. anchor="middle" + x=w/2 → text SVG markazida.
+    const stWidth =
+      measureTextWidth(txt.dataset.text, 24, 400, DASH_NAV_TEXT_FAMILY) + 4;
     renderElementText(txt, {
       text: txt.dataset.text,
       size: 24,
-      width:
-        measureTextWidth(txt.dataset.text, 24, 400, DASH_NAV_TEXT_FAMILY) + 4,
+      width: stWidth,
       height: 27,
+      x: stWidth / 2,
       y: Math.round(24 * 0.82),
+      anchor: "middle",
       weight: 400,
       color: "#F5F2EA",
       family: DASH_NAV_TEXT_FAMILY,
@@ -5490,6 +5753,7 @@ function renderStaticText() {
   initAccountsPopup();
   initTabView();
   initTabPub();
+  initTSearch();
   renderUiTips(document);
   initUiTipClamp();
   initScrollTop();
