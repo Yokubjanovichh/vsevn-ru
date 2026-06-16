@@ -3195,8 +3195,9 @@ body {
   display: block;
   width: 100%;
   min-height: calc(100vh - calc(56 * var(--dpx, 0.0520833vw)));
-  padding: calc(14 * var(--dpx, 0.0520833vw)) calc(6 * var(--dpx, 0.0520833vw))
-    calc(20 * var(--dpx, 0.0520833vw)) calc(16 * var(--dpx, 0.0520833vw));
+  /* 6-fix-93: o'ng va chap padding bir xil (16dpx) — mijoz iltimosi. */
+  padding: calc(14 * var(--dpx, 0.0520833vw)) calc(16 * var(--dpx, 0.0520833vw))
+    calc(20 * var(--dpx, 0.0520833vw));
   background: #e7e5e3;
   border-radius: calc(18.8 * var(--dpx, 0.0520833vw));
   box-shadow: 0 calc(8 * var(--dpx, 0.0520833vw))
@@ -3270,7 +3271,10 @@ body {
 /* ---------- Левый сайдбар ---------- */
 .dash-sidebar {
   position: relative;
-  z-index: 1;
+  /* 6-fix-35: sidebar stacking-context dash-main (z:1) дан yuqori —
+     snav-logo tooltip sidebar tashqarisidan o'ngga chiqsa dash-main
+     ostida qolib ketmasligi uchun (Газета«…» plashka kovboy ustida) */
+  z-index: 2;
   box-sizing: border-box;
   flex: 0 0 auto;
   display: flex;
@@ -4334,14 +4338,10 @@ body {
   bottom: calc(100% + 7 * var(--dpx, 0.0520833vw));
 }
 
-/* компактный тёмный стиль тултипа ковбоя (эталон cowboy-tooltip@1x ×1.007:
-   плашка 233.6×31.2 #64635C, белый текст 14.2 — рендерит renderUiTips по
-   классу; паддинги с учётом cap-смещения движка: 9.1−1.9 / 11.1 / 8) */
-.ui-tip--dark {
-  background: #64635c;
-  padding: calc(7.2 * var(--dpx, 0.0520833vw))
-    calc(11.1 * var(--dpx, 0.0520833vw)) calc(8 * var(--dpx, 0.0520833vw));
-}
+/* 6-fix-34: единый UI для ВСЕХ тултипов — модификаторы --dark/--exit
+   удалены. Плашка #BDBBB7 (default .ui-tip), текст 21.6/Light(300)/
+   Roboto/#000 — рендерит renderUiTips. Падdinги default-плашки
+   (8.1/18.9/5.9) подходят под 21.6: cap-top ~17.7, baseline ~26.2. */
 
 .has-ui-tip:hover > .ui-tip {
   display: block;
@@ -4765,12 +4765,11 @@ body.pub-mode .pub-panel {
   color: #7c7971;
   opacity: 1;
 }
-.tsearch-input:focus + .tsearch-ico {
-  display: none;
-}
-.tsearch.is-focused .tsearch-ico {
-  visibility: hidden;
-}
+/* 6-fix-94 (foydalanuvchi iltimosi): typing/fokus paytida lupa-icon
+   YAShIRINMASIN — eski `:focus + .tsearch-ico { display:none }` va
+   `.tsearch.is-focused .tsearch-ico { visibility:hidden }` olib tashlandi.
+   Lupa-icon endi har doim ko'rinadi (desktop `.resume-search` UX'idan
+   farqli — tablet/mobile uchun explicit ravishda saqlanadi). */
 /* 6-fix-82: button vertical-align: baseline default → SVG bottom kesilish.
    `align-self: center` + line-height: 0 — flex-item parent height ichida
    markazlashgan, va inline-baseline default'i ham nullify. */
@@ -5301,6 +5300,13 @@ body.pub-mode .tstats--pub .tstat,
     gap: calc(37.22 * var(--dpx, 0.0520833vw));
     border: calc(3.72 * var(--dpx, 0.0520833vw)) solid #7c7971;
     border-radius: calc(186.08 * var(--dpx, 0.0520833vw));
+  }
+  /* 6-fix-93: telefon `.tsearch--pub` padding VIZUAL planshetga teng
+     (foydalanuvchi iltimosi, variant A): tablet 31.5dpx × 0.4438dpx-px
+     ≈ 14px real; telefon `--dpx ≈ 0.2016px` → 14 / 0.2016 = **69.4dpx**
+     (PHONE_T/TAB_T = 4.962/2.2535 = 2.202 proporsiya). Faqat pub-variant. */
+  .tsearch.tsearch--pub {
+    padding: 0 calc(69.4 * var(--dpx, 0.0520833vw));
   }
   /* 6-fix-90: lupa × 1.3 (30% kattaroq, 74.44 → 96.77). */
   .tsearch-ico {
