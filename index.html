@@ -9,7 +9,7 @@
     <title>vsevn.ru — Отправленные резюме</title>
     <!-- пустой favicon — глушит 404-ошибку в консоли -->
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="css/style.css?v=542" />
+    <link rel="stylesheet" href="css/style.css?v=548" />
   </head>
   <body>
     <div id="zoomFrame">
@@ -722,7 +722,7 @@
                 </svg>
                 <!-- TODO-CLIENT: текст тултипа временный — заменить, когда клиент пришлёт -->
                 <span
-                  class="ui-tip ui-tip--dark"
+                  class="ui-tip"
                   data-tip-pos="above-center"
                   data-text="Газета «Все Вакансии Нижнего»"
                 ></span>
@@ -763,8 +763,8 @@
 
               <!-- Выйти (Figma: exit.svg 50x50, цвета фиксированные).
                  1.7-fix-2: тултип «Выйти» на hover (стандартный стиль) -->
-              <button type="button" class="snav-exit has-ui-tip">
-                <span class="snav-exit-icon" aria-hidden="true">
+              <button type="button" class="snav-exit">
+                <span class="snav-exit-icon has-ui-tip" aria-hidden="true">
                   <svg
                     viewBox="0 0 50 50"
                     fill="none"
@@ -780,9 +780,9 @@
                       fill="white"
                     />
                   </svg>
+                  <span class="ui-tip" data-text="Выйти"></span>
                 </span>
                 <span class="snav-exit-text" data-text="Выйти">Выйти</span>
-                <span class="ui-tip ui-tip--dark" data-text="Выйти"></span>
               </button>
             </aside>
 
@@ -3247,6 +3247,6 @@
       </svg>
       <span class="scroll-top-text" data-text="вверх"></span>
     </button>
-    <script src="js/script.js?v=425"></script>
+    <script src="js/script.js?v=427"></script>
   </body>
 </html>

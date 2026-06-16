@@ -5496,21 +5496,27 @@ function initUiTipClamp() {
 // G6: генерик-тултип — текст плашки рендерится движком; показ/скрытие
 // чистым CSS (.has-ui-tip:hover > .ui-tip), позиция фиксированная.
 function renderUiTips(root) {
+  // 6-fix-34: единый UI для ВСЕХ тултипов (Figma-спек):
+  // 21.6/Light(300)/Roboto/#000, плашка #BDBBB7 (CSS).
+  // Модификаторы --dark/--exit удалены; data-tip-pos (позиция) сохранён.
   (root || document).querySelectorAll(".ui-tip").forEach(function (el) {
     const t = el.dataset.text;
     if (!t) return;
-    // компактный тёмный вариант ковбоя (1.7-fix-1): 14.2/белый
-    const cowboy = el.classList.contains("ui-tip--dark");
-    const size = cowboy ? 14.2 : 22;
+    const size = 21.6;
+    const weight = 300;
+    const family = '"Roboto", sans-serif';
+    const w = measureTextWidth(t, size, weight, family) + 4;
     renderElementText(el, {
       text: t,
       size: size,
-      width: measureTextWidth(t, size, 400, DASH_NAV_TEXT_FAMILY) + 4,
+      width: w,
       height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
+      x: w / 2,
       y: Math.round(size * 0.82),
-      weight: 400,
-      color: cowboy ? "#FFFFFF" : "#000000",
-      family: DASH_NAV_TEXT_FAMILY,
+      anchor: "middle",
+      weight: weight,
+      color: "#000000",
+      family: family,
       useBitmapText: false,
     });
   });
