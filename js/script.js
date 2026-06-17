@@ -3709,6 +3709,23 @@ function wordPrefixRanges(text, query) {
   return ranges;
 }
 
+// 8-X: barcha substring-mosliklarni (case-insens.) topadi. Pub jadval
+// uchun ishlatiladi (vac + url + manba) — manba prefix emas, ichida
+// ham mos kelishi kerak (URL domeni o'rta-poz., vakansiya ko'p-so'zli).
+function findAllRanges(text, query) {
+  const ranges = [];
+  if (!query) return ranges;
+  const t = String(text).toLowerCase();
+  const q = String(query).toLowerCase();
+  if (!q) return ranges;
+  let idx = 0;
+  while ((idx = t.indexOf(q, idx)) !== -1) {
+    ranges.push({ start: idx, end: idx + q.length });
+    idx += q.length;
+  }
+  return ranges;
+}
+
 // Частичная раскраска внутри SVG-движка: фоновые rect'ы под совпавшими
 // диапазонами + текст из tspan-сегментов (обычный цвет / белый).
 function renderHighlightedCellText(el, text, size, ranges) {
@@ -3803,8 +3820,12 @@ function applyResumeSearch() {
     (pcInput && pcInput.value) || (mobInput && mobInput.value) || "";
   const q = inputVal.trim().toLowerCase();
   // 6-fix-77: adaptiv .trow qatorlarini ham filtr qilamiz (PC bilan teng)
+  // 8-A: + ORANJ HIGHLIGHT mobile .trow-name/.trow-vac uchun (R3).
   const trowBox = document.getElementById("ttableRows");
   if (trowBox) {
+    const phT = isPhoneView();
+    const KT = phT ? PHONE_T : TAB_T;
+    const onestStack = "'Onest', sans-serif";
     trowBox.querySelectorAll(".trow").forEach(function (tr, i) {
       const row = RESUME_ROWS[i];
       if (!row) return;
@@ -3814,6 +3835,37 @@ function applyResumeSearch() {
       const accOk =
         !accountFilterSet.size || accountFilterSet.has(row.account);
       tr.style.display = searchOk && accOk ? "" : "none";
+      const nameEl = tr.querySelector(".trow-name");
+      const vacEl = tr.querySelector(".trow-vac");
+      if (nameEl) {
+        if (nameR.length)
+          renderTabHighlightedText(
+            nameEl,
+            phT ? 20 : 21,
+            300,
+            "#7C7971",
+            KT,
+            onestStack,
+            nameR,
+          );
+        else
+          renderTabText(nameEl, phT ? 20 : 21, 300, "#7C7971", 22, KT, onestStack);
+      }
+      if (vacEl) {
+        const vw = phT ? 400 : 300;
+        const vc = phT ? "#820407" : "#7C7971";
+        if (vacR.length)
+          renderTabHighlightedText(
+            vacEl,
+            phT ? 20 : 21,
+            vw,
+            vc,
+            KT,
+            onestStack,
+            vacR,
+          );
+        else renderTabText(vacEl, phT ? 20 : 21, vw, vc, 22, KT, onestStack);
+      }
     });
   }
   const box = document.getElementById("resumeRows");
@@ -4266,36 +4318,126 @@ const PUB_SOURCE_NAMES = {
   max: "Макс",
 };
 
-// общий предикат видимости pub-строки: поиск ∧ счёт-фильтр (2.3)
+// 8-X (foydalanuvchi qarori 2026-06-17, docx P3/P5 dan ongli kengaytma):
+// predikat manba | vakansiya | URL uchchasida SUBSTRING-moslik bo'yicha
+// (prefix emas — URL/vakansiyada o'rta pozitsiya kutilgan). Manba qatorda
+// ko'rinmaydi (faqat predikatga ta'sir + P2 «Посмотреть» mexanikasi).
 function pubRowMatches(row, q) {
-  const name = PUB_SOURCE_NAMES[row.source] || "";
-  const sourceOk = !q || name.toLowerCase().indexOf(q) === 0;
   const accOk =
     !pubAccPopup.filterSet.size || pubAccPopup.filterSet.has(row.account);
-  return sourceOk && accOk;
+  if (!q) return accOk;
+  const src = (PUB_SOURCE_NAMES[row.source] || "").toLowerCase();
+  const vac = String(row.vac || "").toLowerCase();
+  const url = String(row.url || "").toLowerCase();
+  const searchOk =
+    src.indexOf(q) !== -1 ||
+    vac.indexOf(q) !== -1 ||
+    url.indexOf(q) !== -1;
+  return searchOk && accOk;
 }
 
 function applyPubSearch() {
   // 6-fix-77: PC va Mobile input ikkalasidan ham o'qiymiz.
+  // 8-B: MOBILE USTUN — sync `syncToPC` bir tomonlama (mobile→PC), demak
+  // mobile kapsula foydalanuvchi ko'rgan source-of-truth. PC ni avval
+  // qabul qilsa, viewport resize'dan keyin eski PC qiymati yashirin
+  // filtr qoldirib mobile'da «не то вышло» effektini berardi.
   const pcInput = document.querySelector(
     ".pub-search .resume-search-input",
   );
   const mobInput = document.querySelector(".tsearch--pub .tsearch-input");
   const inputVal =
-    (pcInput && pcInput.value) || (mobInput && mobInput.value) || "";
+    (mobInput && mobInput.value) || (pcInput && pcInput.value) || "";
   const q = inputVal.trim().toLowerCase();
+  // 8-X: desktop pub vac/url ustunlariga HIGHLIGHT (oranj #FD6429 fon + oq
+  // matn). Manba ustuni jadvalda ko'rinmaydi → highlight kerak emas.
   const box = document.getElementById("pubRows");
-  if (!box) return;
-  box.querySelectorAll(".resume-row").forEach(function (tr, i) {
-    const row = PUB_ROWS[i];
-    if (row) tr.style.display = pubRowMatches(row, q) ? "" : "none";
-  });
+  if (box) {
+    const vacSize = 23;
+    const urlSize = 20;
+    box.querySelectorAll(".resume-row").forEach(function (tr, i) {
+      const row = PUB_ROWS[i];
+      if (!row) return;
+      tr.style.display = pubRowMatches(row, q) ? "" : "none";
+      const vacRanges = q ? findAllRanges(row.vac, q) : [];
+      const urlRanges = q ? findAllRanges(row.url, q) : [];
+      const vacCell = tr.querySelector(".pcell-vac");
+      const urlCell = tr.querySelector(".pcell-url");
+      if (vacCell) {
+        if (vacRanges.length)
+          renderHighlightedCellText(vacCell, row.vac, vacSize, vacRanges);
+        else renderResumeCellText(vacCell, row.vac, vacSize);
+      }
+      if (urlCell) {
+        if (urlRanges.length)
+          renderHighlightedCellText(urlCell, row.url, urlSize, urlRanges);
+        else renderResumeCellText(urlCell, row.url, urlSize);
+      }
+    });
+  }
   // шаг 2.4: те же фильтры — и к адаптивным рядам (единое состояние)
+  // 8-X: mobile .tpub-link (URL trunc) + .tpub-vac (1 qator hollarda) highlight.
+  // 2-qator vakansiya holatida highlight skip (pipe-split bilan renderTab*Text
+  // murakkab — keyingi iteratsiyada hal qilinadi).
   const tbox = document.getElementById("tabPubRows");
   if (tbox) {
+    const phT = isPhoneView();
+    const KT = phT ? PHONE_T : TAB_T;
+    const onestStack = "'Onest', sans-serif";
+    const rowSize = phT ? 20 : 21;
+    const linkMaxW = (phT ? 305 : 238) * KT;
+    const vacMaxW = (phT ? 305 : 240) * KT;
     tbox.querySelectorAll(".tpub-row").forEach(function (tr, i) {
       const row = PUB_ROWS[i];
-      if (row) tr.style.display = pubRowMatches(row, q) ? "" : "none";
+      if (!row) return;
+      tr.style.display = pubRowMatches(row, q) ? "" : "none";
+      // URL (.tpub-link) — trunc, 1 qator, highlight
+      const linkEl = tr.querySelector(".tpub-link");
+      if (linkEl) {
+        const display = truncToWidth(
+          row.url.replace(/^https?:\/\//, ""),
+          rowSize * KT,
+          linkMaxW,
+        );
+        linkEl.dataset.text = display;
+        const urlRanges = q ? findAllRanges(display, q) : [];
+        if (urlRanges.length)
+          renderTabHighlightedText(
+            linkEl,
+            rowSize,
+            300,
+            "#7C7971",
+            KT,
+            onestStack,
+            urlRanges,
+          );
+        else
+          renderTabText(linkEl, rowSize, 300, "#7C7971", 22, KT, onestStack);
+      }
+      // VAC (.tpub-vac) — wrapTwoLines, highlight faqat 1 qator hollarda
+      const vacEl = tr.querySelector(".tpub-vac");
+      if (vacEl) {
+        const lines = wrapTwoLines(row.vac, rowSize * KT, vacMaxW);
+        if (lines.length === 1) {
+          vacEl.dataset.text = lines[0];
+          const vacRanges = q ? findAllRanges(lines[0], q) : [];
+          if (vacRanges.length)
+            renderTabHighlightedText(
+              vacEl,
+              rowSize,
+              400,
+              "#7C7971",
+              KT,
+              onestStack,
+              vacRanges,
+            );
+          else
+            renderTabText(vacEl, rowSize, 400, "#7C7971", 22, KT, onestStack);
+        } else {
+          vacEl.dataset.text = lines.join("|");
+          renderTabText(vacEl, rowSize, 400, "#7C7971", 22, KT, onestStack);
+        }
+      }
     });
   }
   // SEL1: высота страницы изменилась при открытом pub-попапе —
@@ -4888,6 +5030,95 @@ function formatPhoneIntl(p) {
 // data-text/data-text-phone qiymatlarni saqlab, render'dan KEYIN RESTORE
 // qilamiz. Bu pipe-multi-line (tstat-label «Всего|дополнительных|...») va
 // trunc-text (tpub-link "yandex.ru/daily?utm_so...") ikkalasi uchun ishlaydi.
+// 8-A: mobile/planshet `.trow-name`/`.trow-vac` UCHUN HIGHLIGHT helper.
+// renderHighlightedCellText (desktop) ning mobile-spec ekvivalenti: kegl
+// makSize*koef bo'lib hisoblanadi, qolgan algoritm aynan (rect+tspan).
+// Pipe-split (lines) qo'llab-quvvatlanmaydi (`.trow-*` 1 qator matn).
+function renderTabHighlightedText(el, makSize, weight, color, koef, family, ranges) {
+  const T = koef || TAB_T;
+  const text =
+    T === PHONE_T && el.dataset.textPhone
+      ? el.dataset.textPhone
+      : el.dataset.text;
+  if (!text) return;
+  const origText = el.dataset.text;
+  const origTextPhone = el.dataset.textPhone;
+  const fam = family || DASH_NAV_TEXT_FAMILY;
+  const size = makSize * T;
+  const w = measureTextWidth(text, size, weight, fam) + 4;
+  const baseOpts = {
+    text: text,
+    size: size,
+    width: w,
+    height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
+    y: Math.round(size * 0.82),
+    weight: weight,
+    color: color,
+    family: fam,
+    useBitmapText: false,
+  };
+  const key =
+    getSvgTextRenderKey(text, baseOpts) +
+    "hl:" +
+    ranges
+      .map(function (r) {
+        return r.start + "-" + r.end;
+      })
+      .join(",");
+  if (el.dataset.svgTextKey === key && el.firstElementChild) {
+    if (origText !== undefined) el.dataset.text = origText;
+    if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
+    return;
+  }
+
+  const svg = createSvgText(text, baseOpts);
+  const label = svg.querySelector("text");
+  label.style.whiteSpace = "pre";
+  label.textContent = "";
+
+  const k = size / 23;
+  const baseline = baseOpts.y;
+  const rectY = baseline - 0.707 * size - 5 * k;
+  const rectH = baseline + 5 * k - rectY;
+  const clean = function (s) {
+    return s ? measureTextWidth(s, size, weight, fam) - 2 : 0;
+  };
+
+  ranges.forEach(function (r) {
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", (clean(text.slice(0, r.start)) - 3 * k).toFixed(2));
+    rect.setAttribute("y", rectY.toFixed(2));
+    rect.setAttribute(
+      "width",
+      (clean(text.slice(r.start, r.end)) + 6 * k).toFixed(2),
+    );
+    rect.setAttribute("height", rectH.toFixed(2));
+    rect.setAttribute("rx", (4 * k).toFixed(2));
+    rect.setAttribute("fill", RESUME_HL_BG);
+    svg.insertBefore(rect, label);
+  });
+
+  function addSpan(t, c) {
+    const tspan = document.createElementNS(svgNS, "tspan");
+    tspan.setAttribute("fill", c);
+    tspan.textContent = t;
+    label.append(tspan);
+  }
+  let cursor = 0;
+  ranges.forEach(function (r) {
+    if (r.start > cursor) addSpan(text.slice(cursor, r.start), color);
+    addSpan(text.slice(r.start, r.end), RESUME_HL_FG);
+    cursor = r.end;
+  });
+  if (cursor < text.length) addSpan(text.slice(cursor), color);
+
+  el.textContent = "";
+  el.dataset.svgTextKey = key;
+  el.append(svg);
+  if (origText !== undefined) el.dataset.text = origText;
+  if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
+}
+
 function renderTabText(el, makSize, weight, color, makLh, koef, family) {
   const T = koef || TAB_T;
   // телефонный вариант текста (другой перенос/формулировка), если есть
@@ -5140,6 +5371,10 @@ function initTabView() {
       });
     });
   }
+  // 8-A: aktiv qidiruv-qiymati va hisob-filtri mobile .trow larga qayta
+  // qo'llanilsin (resize/breakpoint-change ham, ilk renderда ham — desktop
+  // initTabPub oxirida applyPubSearch() chaqirilgan kabi naqsh).
+  applyResumeSearch();
 }
 let tabViewMediaBound = false;
 
