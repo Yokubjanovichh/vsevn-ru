@@ -3420,16 +3420,18 @@ const RESUME_COLS = [
 
 const RESUME_ROWS = [
   {
-    name: "Антонов Дмитрий",
+    // 9-B: to'liq ФИО + 9-C: uzun vakansiya (mijoz misoli)
+    name: "Антонов Дмитрий Иванович",
     phone: "89213451782",
-    vacancy: "Менеджер по продажам",
+    vacancy: "Менеджер по продажам строительных материалов в магазин Пятёрочка",
     email: "antonov.d@mail.ru",
     replyDate: "11 Нояб 2024",
     account: "Св000000001811",
     accountDate: "11 Апреля 2024",
   },
   {
-    name: "Борисова Анна",
+    // 9-B: to'liq ФИО
+    name: "Борисова Анна Сергеевна",
     phone: "89052184431",
     vacancy: "Бухгалтер",
     email: "borisova.anna@yandex.ru",
@@ -3438,7 +3440,8 @@ const RESUME_ROWS = [
     accountDate: "15 Апреля 2024",
   },
   {
-    name: "Васильев Пётр",
+    // 9-B: to'liq ФИО
+    name: "Васильев Пётр Александрович",
     phone: "89126339047",
     vacancy: "Водитель",
     email: "vasilev.pyotr@mail.ru",
@@ -3456,9 +3459,10 @@ const RESUME_ROWS = [
     accountDate: "24 Апреля 2024",
   },
   {
-    name: "Дмитриев Сергей",
+    // 9-B: to'liq ФИО + 9-C: uzun vakansiya
+    name: "Дмитриев Сергей Викторович",
     phone: "89037815609",
-    vacancy: "Электрик",
+    vacancy: "Старший инженер-электрик в крупный логистический центр",
     email: "dmitriev.s@yandex.ru",
     replyDate: "25 Нояб 2024",
     account: "Св000000001840",
@@ -3492,7 +3496,8 @@ const RESUME_ROWS = [
     accountDate: "19 Мая 2024",
   },
   {
-    name: "Иванова Дарья",
+    // 9-B: to'liq ФИО
+    name: "Иванова Дарья Михайловна",
     phone: "89315081264",
     vacancy: "Кассир",
     email: "ivanova.darya@yandex.ru",
@@ -3501,16 +3506,18 @@ const RESUME_ROWS = [
     accountDate: "26 Мая 2024",
   },
   {
+    // 9-C: uzun vakansiya
     name: "Ковалёв Игорь",
     phone: "89159403528",
-    vacancy: "Охранник",
+    vacancy: "Бухгалтер по расчету заработной платы в IT-компанию",
     email: "kovalev.igor@mail.ru",
     replyDate: "12 Дек 2024",
     account: "Св000000001870",
     accountDate: "2 Июня 2024",
   },
   {
-    name: "Лебедева Наталья",
+    // 9-B: to'liq ФИО
+    name: "Лебедева Наталья Андреевна",
     phone: "89241165990",
     vacancy: "Администратор",
     email: "lebedeva.n@gmail.com",
@@ -3555,9 +3562,10 @@ const RESUME_ROWS = [
     accountDate: "7 Июля 2024",
   },
   {
+    // 9-C: uzun vakansiya
     name: "Романов Павел",
     phone: "89255493178",
-    vacancy: "Разнорабочий",
+    vacancy: "Старший администратор сети розничных магазинов в Нижнем Новгороде",
     email: "romanov.pavel@mail.ru",
     replyDate: "3 Окт 2024",
     account: "Св000000001902",
@@ -3837,34 +3845,52 @@ function applyResumeSearch() {
       tr.style.display = searchOk && accOk ? "" : "none";
       const nameEl = tr.querySelector(".trow-name");
       const vacEl = tr.querySelector(".trow-vac");
+      const rowSize = phT ? 20 : 21;
+      // 9-fix-2: max-eni mobile resume vac/name uchun (tab-pub naqshi).
+      // Telefon: 305 maket-px (~karta eni minus padding), planshet: 240.
+      const cellMaxW = (phT ? 305 : 240) * KT;
       if (nameEl) {
-        if (nameR.length)
+        // Uchaltrli ФИО telefonda 1-qatorga sig'masa truncToWidth `...` bilan
+        const nameStr = truncToWidth(row.name, rowSize * KT, cellMaxW);
+        nameEl.dataset.text = nameStr;
+        const nameRS = q ? wordPrefixRanges(nameStr, q) : [];
+        if (nameRS.length)
           renderTabHighlightedText(
             nameEl,
-            phT ? 20 : 21,
+            rowSize,
             300,
             "#7C7971",
             KT,
             onestStack,
-            nameR,
+            nameRS,
           );
         else
-          renderTabText(nameEl, phT ? 20 : 21, 300, "#7C7971", 22, KT, onestStack);
+          renderTabText(nameEl, rowSize, 300, "#7C7971", 22, KT, onestStack);
       }
       if (vacEl) {
         const vw = phT ? 400 : 300;
         const vc = phT ? "#820407" : "#7C7971";
-        if (vacR.length)
-          renderTabHighlightedText(
-            vacEl,
-            phT ? 20 : 21,
-            vw,
-            vc,
-            KT,
-            onestStack,
-            vacR,
-          );
-        else renderTabText(vacEl, phT ? 20 : 21, vw, vc, 22, KT, onestStack);
+        // Uzun vakansiya — wrapTwoLines: 1 qator (highlight mumkin) yoki
+        // 2 qator (pipe-split, highlight skip — texnik chegara naqshi).
+        const vacLines = wrapTwoLines(row.vacancy, rowSize * KT, cellMaxW);
+        if (vacLines.length === 1) {
+          vacEl.dataset.text = vacLines[0];
+          const vacRS = q ? wordPrefixRanges(vacLines[0], q) : [];
+          if (vacRS.length)
+            renderTabHighlightedText(
+              vacEl,
+              rowSize,
+              vw,
+              vc,
+              KT,
+              onestStack,
+              vacRS,
+            );
+          else renderTabText(vacEl, rowSize, vw, vc, 22, KT, onestStack);
+        } else {
+          vacEl.dataset.text = vacLines.join("|");
+          renderTabText(vacEl, rowSize, vw, vc, 22, KT, onestStack);
+        }
       }
     });
   }
@@ -4024,7 +4050,8 @@ const PUB_COLS = [
 // для фильтрации (шаги 2.2/2.3), в таблице не рендерится.
 const PUB_ROWS = [
   {
-    vac: "Менеджер по продажам",
+    // 9-C: uzun vakansiya (mijoz misoli)
+    vac: "Менеджер по продажам строительных материалов в магазин Пятёрочка",
     placed: "25 Янв 2025",
     account: "Св000000001944",
     accDate: "20 Января 2025",
@@ -4114,7 +4141,8 @@ const PUB_ROWS = [
     source: "ok",
   },
   {
-    vac: "Менеджер по продажам",
+    // 9-C: uzun vakansiya
+    vac: "Старший администратор сети розничных магазинов в Нижнем Новгороде",
     placed: "24 Нояб 2024",
     account: "Св000000001891",
     accDate: "30 Июня 2024",
@@ -4141,7 +4169,8 @@ const PUB_ROWS = [
     source: "tg",
   },
   {
-    vac: "Менеджер по продажам",
+    // 9-C: uzun vakansiya
+    vac: "Бухгалтер по расчету заработной платы в IT-компанию",
     placed: "11 Нояб 2024",
     account: "Св000000001829",
     accDate: "21 Апреля 2024",

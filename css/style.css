@@ -4765,11 +4765,18 @@ body.pub-mode .pub-panel {
   color: #7c7971;
   opacity: 1;
 }
-/* 6-fix-94 (foydalanuvchi iltimosi): typing/fokus paytida lupa-icon
-   YAShIRINMASIN — eski `:focus + .tsearch-ico { display:none }` va
-   `.tsearch.is-focused .tsearch-ico { visibility:hidden }` olib tashlandi.
-   Lupa-icon endi har doim ko'rinadi (desktop `.resume-search` UX'idan
-   farqli — tablet/mobile uchun explicit ravishda saqlanadi). */
+/* 9-A (mijoz iltimosi 2026-06-17): R5 docx talab tiklandi —
+   fokus yoki value paytida lupa-icon va placeholder YO'QOLADI,
+   input chap chetdan boshlanadi (caret lupa o'rnida turadi).
+   Flex-item display:none → gap o'z-o'zidan yo'qoladi (gap faqat
+   ko'rinadigan sibling'lar uchun), input flex:1 chap chetni egallaydi. */
+.tsearch.is-focused .tsearch-ico,
+.tsearch.has-value .tsearch-ico {
+  display: none;
+}
+.tsearch.is-focused .tsearch-input::placeholder {
+  color: transparent;
+}
 /* 6-fix-82: button vertical-align: baseline default → SVG bottom kesilish.
    `align-self: center` + line-height: 0 — flex-item parent height ichida
    markazlashgan, va inline-baseline default'i ham nullify. */
@@ -5307,6 +5314,12 @@ body.pub-mode .tstats--pub .tstat,
      (PHONE_T/TAB_T = 4.962/2.2535 = 2.202 proporsiya). Faqat pub-variant. */
   .tsearch.tsearch--pub {
     padding: 0 calc(69.4 * var(--dpx, 0.0520833vw));
+  }
+  /* 9-fix-1 (foydalanuvchi iltimosi 2026-06-17): telefon `.tsearch--resume`
+     gorizontal padding ×2 (27.92 → 55.84dpx). Faqat resume-varianti;
+     pub o'z 69.4dpx ni saqlaydi. h/ico/font/gap tegmagan. */
+  .tsearch.tsearch--resume {
+    padding: 0 calc(55.84 * var(--dpx, 0.0520833vw));
   }
   /* 6-fix-90: lupa × 1.3 (30% kattaroq, 74.44 → 96.77). */
   .tsearch-ico {
