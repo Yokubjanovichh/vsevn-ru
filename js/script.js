@@ -3846,12 +3846,31 @@ function applyResumeSearch() {
       const nameEl = tr.querySelector(".trow-name");
       const vacEl = tr.querySelector(".trow-vac");
       const rowSize = phT ? 20 : 21;
-      // 9-fix-2: max-eni mobile resume vac/name uchun (tab-pub naqshi).
-      // Telefon: 305 maket-px (~karta eni minus padding), planshet: 240.
-      const cellMaxW = (phT ? 305 : 240) * KT;
+      // TЗ-11-fix-2: nameMaxW va vacMaxW alohida — planshet 2-ustun grid'da
+      // name uzun bo'lsa vac matniga TEGIB qolardi. Telefon (block layout)
+      // ikkalasi to'liq qator eni. Planshet: name = 1-ustun (588) − gap
+      // ozgina himoya; vac = real qator − 588 − gap.
+      const refEl = vacEl || nameEl;
+      const trow = refEl ? refEl.closest(".trow") : null;
+      const dpxPx = getDpxRealPx();
+      const trowSpec =
+        trow && dpxPx ? trow.getBoundingClientRect().width / dpxPx : 0;
+      const GRID_GAP = 24; // CSS column-gap bilan teng
+      const LEFT_COL = 588;
+      let nameMaxW, vacMaxW;
+      if (phT) {
+        const full = trowSpec || 305 * KT;
+        nameMaxW = full;
+        vacMaxW = full;
+      } else if (trowSpec) {
+        nameMaxW = LEFT_COL - 8;
+        vacMaxW = Math.max(0, trowSpec - LEFT_COL - GRID_GAP);
+      } else {
+        nameMaxW = LEFT_COL - 8;
+        vacMaxW = 240 * KT;
+      }
       if (nameEl) {
-        // Uchaltrli ФИО telefonda 1-qatorga sig'masa truncToWidth `...` bilan
-        const nameStr = truncToWidth(row.name, rowSize * KT, cellMaxW);
+        const nameStr = truncToWidth(row.name, rowSize * KT, nameMaxW);
         nameEl.dataset.text = nameStr;
         const nameRS = q ? wordPrefixRanges(nameStr, q) : [];
         if (nameRS.length)
@@ -3870,9 +3889,13 @@ function applyResumeSearch() {
       if (vacEl) {
         const vw = phT ? 400 : 300;
         const vc = phT ? "#820407" : "#7C7971";
+        // TЗ-11-fix-4: makLh 30→22 ga qaytarildi (Figma spec). BOTTOM-
+        // tekislik CSS `align-self: end` orqali (vac grid-cell pastiga
+        // yopishadi → trow bottom = chap phone bottom).
+        const vacLh = 22;
         // Uzun vakansiya — wrapTwoLines: 1 qator (highlight mumkin) yoki
         // 2 qator (pipe-split, highlight skip — texnik chegara naqshi).
-        const vacLines = wrapTwoLines(row.vacancy, rowSize * KT, cellMaxW);
+        const vacLines = wrapTwoLines(row.vacancy, rowSize * KT, vacMaxW);
         if (vacLines.length === 1) {
           vacEl.dataset.text = vacLines[0];
           const vacRS = q ? wordPrefixRanges(vacLines[0], q) : [];
@@ -3886,10 +3909,10 @@ function applyResumeSearch() {
               onestStack,
               vacRS,
             );
-          else renderTabText(vacEl, rowSize, vw, vc, 22, KT, onestStack);
+          else renderTabText(vacEl, rowSize, vw, vc, vacLh, KT, onestStack);
         } else {
           vacEl.dataset.text = vacLines.join("|");
-          renderTabText(vacEl, rowSize, vw, vc, 22, KT, onestStack);
+          renderTabText(vacEl, rowSize, vw, vc, vacLh, KT, onestStack);
         }
       }
     });
@@ -4414,14 +4437,36 @@ function applyPubSearch() {
     const KT = phT ? PHONE_T : TAB_T;
     const onestStack = "'Onest', sans-serif";
     const rowSize = phT ? 20 : 21;
-    const linkMaxW = (phT ? 305 : 238) * KT;
-    const vacMaxW = (phT ? 305 : 240) * KT;
+    // TЗ-11-fix-5 (mijoz screenshot): planshet `.tpub-vac` absolute layout —
+    // `.tpub-link` left=0, `.tpub-vac` left=576.2dpx, `.tpub-d1` left=1158.3dpx
+    // (Начало sanasi). Demak vac max-eni = 1158.3 - 576.2 - 24 (gap) = ~558;
+    // link max-eni = 576.2 - 0 - 24 = ~552. TЗ-11-fix da real konteyner eni
+    // ishlatilgan edi (~1700dpx) → vac matn sanasiga tushib ketardi.
+    // Telefon (block-layout) real konteyner ENIDAN.
+    const linkMaxWFallback = (phT ? 305 : 238) * KT;
+    const vacMaxWFallback = (phT ? 305 : 240) * KT;
     tbox.querySelectorAll(".tpub-row").forEach(function (tr, i) {
       const row = PUB_ROWS[i];
       if (!row) return;
       tr.style.display = pubRowMatches(row, q) ? "" : "none";
+      const vacRef = tr.querySelector(".tpub-vac");
+      const linkRef = tr.querySelector(".tpub-link");
+      let linkMaxW, vacMaxW;
+      if (phT) {
+        // Telefon: real konteyner enidan (stacked block)
+        linkMaxW = linkRef
+          ? getCellMaxWSpec(linkRef, linkMaxWFallback, true, true)
+          : linkMaxWFallback;
+        vacMaxW = vacRef
+          ? getCellMaxWSpec(vacRef, vacMaxWFallback, true, true)
+          : vacMaxWFallback;
+      } else {
+        // Planshet: fix maket-px (absolute pozitsiyalar bo'yicha)
+        linkMaxW = 552;
+        vacMaxW = 558;
+      }
       // URL (.tpub-link) — trunc, 1 qator, highlight
-      const linkEl = tr.querySelector(".tpub-link");
+      const linkEl = linkRef;
       if (linkEl) {
         const display = truncToWidth(
           row.url.replace(/^https?:\/\//, ""),
@@ -5035,6 +5080,34 @@ function isPhoneView() {
   return (
     window.matchMedia && window.matchMedia("(max-width: 489.98px)").matches
   );
+}
+
+// TЗ-11-fix: real konteyner enini dpx-spec ga aylantirish.
+// `--dpx` = pageScale (real-px) ni o'qiymiz; agar yo'q yoki 0 — null.
+function getDpxRealPx() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(
+    "--dpx",
+  );
+  const f = parseFloat(v);
+  return f > 0 ? f : null;
+}
+
+// .trow-vac yoki .tpub-vac uchun maxW dpx-spec (rowSize * KT bilan teng
+// scale). REAL en parent `.trow`/.tpub-row dan, planshet'da grid 1-cell
+// (588dpx) ayriladi. Hech kim olmasa fallback statik qiymat.
+function getCellMaxWSpec(cellEl, fallbackSpec, phT, isPubRow) {
+  const dpx = getDpxRealPx();
+  if (!dpx) return fallbackSpec;
+  const row = cellEl.closest(isPubRow ? ".tpub-row" : ".trow");
+  if (!row) return fallbackSpec;
+  const realW = row.getBoundingClientRect().width;
+  if (!realW) return fallbackSpec;
+  const specW = realW / dpx;
+  if (phT) return specW; // telefon: vac block 100% qator
+  // planshet resume: trow grid (588dpx + 1fr) → vac eni = trow - 588dpx
+  if (!isPubRow) return Math.max(0, specW - 588);
+  // planshet pub: tpub-row to'liq qator (vac block 100% pad ichi)
+  return specW;
 }
 
 function formatPhoneIntl(p) {
