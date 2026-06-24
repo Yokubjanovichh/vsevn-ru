@@ -4317,12 +4317,24 @@ body {
   transform: translateX(-50%);
   padding: calc(8.1 * var(--dpx, 0.0520833vw))
     calc(18.9 * var(--dpx, 0.0520833vw)) calc(5.9 * var(--dpx, 0.0520833vw));
-  background: #bdbbb7;
+  background-color: #bdbbb7;
+  background-image: none;
+  border: none;
+  outline: none;
+  /* TЗ-10-fix6: Figma yumaloq burchak ~4dpx, qora ramka YO'Q */
+  border-radius: calc(4 * var(--dpx, 0.0520833vw));
+  box-shadow: none;
   white-space: nowrap;
   pointer-events: none;
   z-index: 60; /* fix-3: тултипы всегда поверх попапа (50) */
-  font-size: 0;
-  line-height: 0;
+  /* TЗ-10-fix2: SVG-text engine olib tashlandi, native text-rendering. */
+  font-family: "Onest", sans-serif;
+  font-weight: 300;
+  font-size: calc(21.6 * var(--dpx, 0.0520833vw));
+  line-height: 1;
+  color: #000000;
+  text-align: center;
+  text-decoration: none;
 }
 
 /* вариант позиции (эталон ✕): ниже с зазором 21.8, центр сдвинут
@@ -4338,13 +4350,22 @@ body {
   bottom: calc(100% + 7 * var(--dpx, 0.0520833vw));
 }
 
-/* 6-fix-34: единый UI для ВСЕХ тултипов — модификаторы --dark/--exit
-   удалены. Плашка #BDBBB7 (default .ui-tip), текст 21.6/Light(300)/
-   Roboto/#000 — рендерит renderUiTips. Падdinги default-плашки
-   (8.1/18.9/5.9) подходят под 21.6: cap-top ~17.7, baseline ~26.2. */
+/* 6-fix-34/TЗ-10: единый UI для ВСЕХ тултипов — модификаторы --dark/
+   --exit удалены. Плашка #BDBBB7 (default .ui-tip), текст 21.6/Light
+   (300)/**Onest**/
+#000 — рендерит renderUiTips. TЗ-10 (2026-06-24):
+   Roboto → Onest (Roboto fayllari yo'q, brauzer Arial'ga tushar, Arial
+   Light yo'q → 400 ko'rinar; Onest variable Light haqiqiy). Падdinги
+   default-плашки (8.1/18.9/5.9): cap 0.707 (Onest), cap-top ~15.3,
+   baseline 18, total svg-h 25dpx + 14 padding = ~39dpx плашка-h. */
 
-.has-ui-tip:hover > .ui-tip {
-  display: block;
+/* TЗ-10-fix3 (2026-06-24, mijoz: tooltip xali ham hech qaerda chiqmayapti):
+   pure-CSS `.has-ui-tip:hover > .ui-tip` qoidasi noaniq sabab bilan
+   ishlamadi (specificity yoki bola-tartibi konflikti). JS bilan boshqarish:
+   `mouseenter`→`.is-shown` qo'shadi, `mouseleave`→olib tashlaydi. */
+.has-ui-tip:hover > .ui-tip,
+.ui-tip.is-shown {
+  display: block !important;
 }
 
 /* ============================================================
@@ -5282,7 +5303,7 @@ body.pub-mode .tstats--pub .tstat,
     height: calc(44.17 * var(--dpx, 0.0520833vw));
   }
   .tsearch-input {
-    font-size: calc(31.55 * var(--dpx, 0.0520833vw));
+    font-size: calc(38.55 * var(--dpx, 0.0520833vw));
     line-height: 1;
   }
   .tsearch-clear svg {
@@ -5360,7 +5381,7 @@ body.pub-mode .tstats--pub .tstat,
     height: calc(1800 * var(--dpx, 0.0520833vw));
     background: radial-gradient(
       50% 50% at 50% 50%,
-      rgba(255, 205, 42, 0.40) 0%,
+      rgba(255, 205, 42, 0.4) 0%,
       rgba(255, 205, 42, 0.28) 22%,
       rgba(255, 205, 42, 0.16) 44%,
       rgba(255, 205, 42, 0.07) 68%,
@@ -5378,7 +5399,7 @@ body.pub-mode .tstats--pub .tstat,
     height: calc(3000 * var(--dpx, 0.0520833vw));
     background: radial-gradient(
       50% 50% at 50% 50%,
-      rgba(255, 205, 42, 0.40) 0%,
+      rgba(255, 205, 42, 0.4) 0%,
       rgba(255, 205, 42, 0.28) 22%,
       rgba(255, 205, 42, 0.16) 44%,
       rgba(255, 205, 42, 0.06) 68%,
@@ -5467,8 +5488,8 @@ body.pub-mode .tstats--pub .tstat,
      (eski 99). SVG ichi 60% qoidasi planshetdан meros — proporsional skall.
      margin-right va border-radius saqlangan (spec'da yo'q). */
   .tstat-chip {
-    width: calc(113.0 * var(--dpx, 0.0520833vw));
-    height: calc(113.0 * var(--dpx, 0.0520833vw));
+    width: calc(113 * var(--dpx, 0.0520833vw));
+    height: calc(113 * var(--dpx, 0.0520833vw));
     /* 2.4-fix: эталонный ink-зазор чип->число 17.4м минус lsb цифры */
     margin-right: calc(74 * var(--dpx, 0.0520833vw));
     border-radius: calc(30 * var(--dpx, 0.0520833vw));

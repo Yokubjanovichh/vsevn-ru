@@ -5451,20 +5451,49 @@ function truncToWidth(text, size, maxW) {
   return t + "...";
 }
 
-// перенос по словам максимум на 2 строки; излишек -> «...» в конце 2-й
+// TЗ-11 (2026-06-24, mijoz iltimosi): HARF-harf to'ldirib 1-qatorni
+// maksimal to'g'irlash. Tabiiy so'z chegarasi (probel) bo'lsa unga
+// kesamiz; so'z o'rtasi bo'lsa DEFIS qo'shamiz (slogli ko'chirish).
+// 2-qator sig'masa truncToWidth bilan `...`. Eski so'z-bo'yicha mantiq
+// bo'sh joy qoldirib uzun so'zni butunlay 2-qatorga ko'chirardi —
+// mijoz "практически полстроки пустые" deb shikoyat qildi.
 function wrapTwoLines(text, size, maxW) {
-  const words = String(text).split(/\s+/);
-  let l1 = "";
+  const fam = DASH_NAV_TEXT_FAMILY;
+  const str = String(text);
+  if (!str) return [""];
+  if (measureTextWidth(str, size, 300, fam) <= maxW) return [str];
+  // 1-qatorga harf-harf qo'shamiz, maxW ni bosmasligi sharti
   let i = 0;
-  while (i < words.length) {
-    const cand = l1 ? l1 + " " + words[i] : words[i];
-    if (l1 && measureTextWidth(cand, size, 300, DASH_NAV_TEXT_FAMILY) > maxW)
-      break;
-    l1 = cand;
+  while (
+    i < str.length &&
+    measureTextWidth(str.slice(0, i + 1), size, 300, fam) <= maxW
+  ) {
     i++;
   }
-  if (i >= words.length) return [l1];
-  return [l1, truncToWidth(words.slice(i).join(" "), size, maxW)];
+  if (i === 0) i = 1; // patologik: 1 harf ham sig'masa, 1 ta majburiy
+  let line1, rest;
+  if (str[i] === " ") {
+    // keyingi belgi probel → tabiiy so'z chegarasi, defis kerakmas
+    line1 = str.slice(0, i);
+    rest = str.slice(i + 1);
+  } else if (i > 0 && str[i - 1] === " ") {
+    // line1 oxiri probel → trim, rest belgi-pozitsiyadan
+    line1 = str.slice(0, i - 1);
+    rest = str.slice(i);
+  } else {
+    // so'z o'rtasi → defis. Defis ham sig'ishi kerak — agar yo'q, 1 harf orqaga
+    let cut = i;
+    while (
+      cut > 1 &&
+      measureTextWidth(str.slice(0, cut) + "-", size, 300, fam) > maxW
+    ) {
+      cut--;
+    }
+    line1 = str.slice(0, cut) + "-";
+    rest = str.slice(cut);
+  }
+  if (measureTextWidth(rest, size, 300, fam) <= maxW) return [line1, rest];
+  return [line1, truncToWidth(rest, size, maxW)];
 }
 
 // «Скопировать»: полный URL в буфер; визуального фидбека НЕТ
@@ -5760,29 +5789,86 @@ function initUiTipClamp() {
 // G6: генерик-тултип — текст плашки рендерится движком; показ/скрытие
 // чистым CSS (.has-ui-tip:hover > .ui-tip), позиция фиксированная.
 function renderUiTips(root) {
-  // 6-fix-34: единый UI для ВСЕХ тултипов (Figma-спек):
-  // 21.6/Light(300)/Roboto/#000, плашка #BDBBB7 (CSS).
-  // Модификаторы --dark/--exit удалены; data-tip-pos (позиция) сохранён.
+  // TЗ-10-fix2/3 (2026-06-24): SVG-text engine olib tashlandi — native
+  // text-rendering. data-text → textContent; font/rang/o'lcham CSS-da
+  // (.ui-tip qoidasi). aria-label saqlandi.
+  // TЗ-10-fix3: ko'rsatish JS-mouseenter/leave orqali (.is-shown klass);
+  // pure-CSS hover'da noaniq specificity konflikti tooltipni yashirardi.
   (root || document).querySelectorAll(".ui-tip").forEach(function (el) {
     const t = el.dataset.text;
     if (!t) return;
-    const size = 21.6;
-    const weight = 300;
-    const family = '"Roboto", sans-serif';
-    const w = measureTextWidth(t, size, weight, family) + 4;
-    renderElementText(el, {
-      text: t,
-      size: size,
-      width: w,
-      height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
-      x: w / 2,
-      y: Math.round(size * 0.82),
-      anchor: "middle",
-      weight: weight,
-      color: "#000000",
-      family: family,
-      useBitmapText: false,
-    });
+    if (el.textContent !== t) el.textContent = t;
+    el.setAttribute("aria-label", t);
+  });
+}
+
+// TЗ-10-fix5: foydalanuvchi screenshot tasdiqladi — bizning .ui-tip
+// element chiqadi (data-text matni mos), lekin CSS qoidalari (background,
+// padding, font) qo'llanmagan → brauzer default `<span>` styling (oq
+// fon + qora ramka). Sabab: brauzer cache eski CSS yuklab turibdi.
+// FIX: JS-da BARCHA critical vizual xususiyatlarni inline-style bilan
+// qo'yamiz (cssText + !important) — CSS-ga umuman ishonmaymiz.
+// TЗ-10-fix6: Figma screenshot 1:1 — yumaloq burchak (~4dpx) qo'shildi,
+// qora ramka aniq bekor (border:none + outline:none), shadow yo'q,
+// background-color aniq #BDBBB7 (Figma rangi).
+const UI_TIP_INLINE_STYLE = [
+  "display: block !important",
+  "opacity: 1 !important",
+  "visibility: visible !important",
+  "position: absolute !important",
+  "background-color: #BDBBB7 !important",
+  "background-image: none !important",
+  "padding: calc(8.1 * var(--dpx, 0.0520833vw)) calc(18.9 * var(--dpx, 0.0520833vw)) calc(5.9 * var(--dpx, 0.0520833vw)) !important",
+  "font-family: 'Onest', sans-serif !important",
+  "font-weight: 300 !important",
+  "font-size: calc(21.6 * var(--dpx, 0.0520833vw)) !important",
+  "line-height: 1 !important",
+  "color: #000000 !important",
+  "text-align: center !important",
+  "white-space: nowrap !important",
+  "pointer-events: none !important",
+  "z-index: 9999 !important",
+  "border: none !important",
+  "outline: none !important",
+  "border-radius: calc(4 * var(--dpx, 0.0520833vw)) !important",
+  "box-shadow: none !important",
+  "text-decoration: none !important",
+].join("; ");
+
+let uiTipHoverBound = false;
+function initUiTipHover() {
+  if (uiTipHoverBound) return;
+  uiTipHoverBound = true;
+  document.addEventListener("mouseover", function (e) {
+    const owner = e.target.closest && e.target.closest(".has-ui-tip");
+    if (!owner) return;
+    const tip = owner.querySelector(":scope > .ui-tip");
+    if (!tip) return;
+    tip.classList.add("is-shown");
+    // Pozitsiyani data-tip-pos atributiga ko'ra hisoblaymiz (above-center,
+    // below-right, default — below-center). transform/top inline'da.
+    const pos = tip.getAttribute("data-tip-pos");
+    let extra = "";
+    if (pos === "above-center") {
+      extra =
+        "; top: auto !important; bottom: calc(100% + 7 * var(--dpx, 0.0520833vw)) !important; left: 50% !important; transform: translateX(-50%) !important";
+    } else if (pos === "below-right") {
+      extra =
+        "; top: calc(100% + 21.8 * var(--dpx, 0.0520833vw)) !important; bottom: auto !important; left: 50% !important; transform: translateX(calc(-50% + 15.7 * var(--dpx, 0.0520833vw))) !important";
+    } else {
+      extra =
+        "; top: calc(100% + 10.5 * var(--dpx, 0.0520833vw)) !important; bottom: auto !important; left: 50% !important; transform: translateX(-50%) !important";
+    }
+    tip.style.cssText = UI_TIP_INLINE_STYLE + extra;
+  });
+  document.addEventListener("mouseout", function (e) {
+    const owner = e.target.closest && e.target.closest(".has-ui-tip");
+    if (!owner) return;
+    if (e.relatedTarget && owner.contains(e.relatedTarget)) return;
+    const tip = owner.querySelector(":scope > .ui-tip");
+    if (!tip) return;
+    tip.classList.remove("is-shown");
+    tip.style.cssText = "";
   });
 }
 
@@ -6025,6 +6111,7 @@ function renderStaticText() {
   initTabPub();
   initTSearch();
   renderUiTips(document);
+  initUiTipHover();
   initUiTipClamp();
   initScrollTop();
   initGauge();
