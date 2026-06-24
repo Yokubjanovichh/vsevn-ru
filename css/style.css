@@ -4893,9 +4893,11 @@ body.pub-mode .tstats--pub .tstat,
 
   /* fix: карта остаётся ДЕСКТОПНОЙ (#E7E5E3 + glow) — новый эталон
        tablet-resume@4x подтвердил градиент/жёлтое свечение */
+  /* TЗ-12 (mijoz iltimosi): planshet kulrang fon eni juda katta edi
+     (81/171). Telefon padding (64.5/79) ga moslashtirildi. */
   .dash-page {
-    padding: calc(81 * var(--dpx, 0.0520833vw))
-      calc(171 * var(--dpx, 0.0520833vw));
+    padding: calc(64.5 * var(--dpx, 0.0520833vw))
+      calc(79 * var(--dpx, 0.0520833vw));
   }
 
   .dash-card {
@@ -5131,11 +5133,26 @@ body.pub-mode .tstats--pub .tstat,
 
   /* колонка вакансии: x=275 макет от края панели (панель-пад 32 учтён) */
   /* 6-fix-72: position relative — `::after` separator absolute anchor uchun. */
+  /* TЗ-11-fix-2: column-gap 24dpx — ФИО va Вакансия orasidagi bo'sh joy. */
   .trow {
     position: relative;
     display: grid;
     grid-template-columns: calc(588 * var(--dpx, 0.0520833vw)) minmax(0, 1fr);
+    column-gap: calc(24 * var(--dpx, 0.0520833vw));
     padding: calc(20 * var(--dpx, 0.0520833vw)) 0;
+  }
+  /* TЗ-11-fix-2: cell-tashqarisi matn-overflow bartaraf — name/vac uzun
+     bo'lsa SVG block cell ichida cheklanadi (JS-trunc/wrap bilan birga). */
+  .trow-left,
+  .trow-vac {
+    overflow: hidden;
+    min-width: 0;
+  }
+  /* TЗ-11-fix-4: BOTTOM-tekislik — vac grid-cell pastiga yopishadi
+     → vac matn pastki chegarasi chap phone pastki chegarasi bilan teng.
+     Chap ustun default `stretch` — top'dan boshlanadi (name → gap → phone). */
+  .trow-vac {
+    align-self: end;
   }
   /* 6-fix-72 (Group 143.jpg planshet etalon): RESUME ttable qatorlari orasi
      oq separator chiziq (.tpub-row::after bilan teng — h 4.5dpx, rgba). */
