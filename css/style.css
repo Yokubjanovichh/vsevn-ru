@@ -4101,8 +4101,7 @@ body {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  margin: calc(8 * var(--dpx, 0.0520833vw)) calc(8 * var(--dpx, 0.0520833vw)) 0
-    calc(20 * var(--dpx, 0.0520833vw));
+  margin: calc(8 * var(--dpx, 0.0520833vw)) 0 0 0;
   padding-bottom: calc(12 * var(--dpx, 0.0520833vw));
   background: rgba(255, 253, 244, 0.62);
   border-radius: calc(15.59 * var(--dpx, 0.0520833vw));
@@ -4252,6 +4251,17 @@ body {
     calc(-8 * var(--dpx, 0.0520833vw)) 0 calc(-8 * var(--dpx, 0.0520833vw)) 0
   );
   overflow: visible;
+}
+
+/* TЗ-21: oranj highlight HTML span (SVG tspan+rect o'rniga). Plate ±3dpx
+   matn atrofida cho'ziladi (negativ margin matn pozitsiyasini saqlaydi —
+   eski SVG -3k/+6k bilan teng). */
+.cell-hl {
+  background: #fd6429;
+  color: #ffffff;
+  border-radius: calc(4 * var(--dpx, 0.0520833vw));
+  padding: 0 calc(3 * var(--dpx, 0.0520833vw));
+  margin: 0 calc(-3 * var(--dpx, 0.0520833vw));
 }
 
 /* ---- ШАГ 1.5: состояния поиска (R5) ----
@@ -4469,6 +4479,8 @@ body {
   margin: 0;
   font-size: 0;
   line-height: 0;
+  /* TЗ-24: HTML-text bazaviy rang (eski SVG fill o'rniga) */
+  color: #584e4e;
 }
 
 .acc-popup-body {
@@ -4496,12 +4508,15 @@ body {
   background: #f5faff;
 }
 
-/* перекраска SVG-текста состояниями (fill-атрибут уступает CSS-правилу) */
-.acc-row:hover .svg-label text {
-  fill: #4d4343;
+/* TЗ-24: holat-ranglar HTML-text uchun (eski `.svg-label text { fill }`
+   o'rniga `.acc-num/.acc-date` color). */
+.acc-row:hover .acc-num,
+.acc-row:hover .acc-date {
+  color: #4d4343;
 }
-.acc-row.is-checked .svg-label text {
-  fill: #0087fc;
+.acc-row.is-checked .acc-num,
+.acc-row.is-checked .acc-date {
+  color: #0087fc;
 }
 
 .acc-cb {
@@ -4535,6 +4550,8 @@ body {
   margin: 0;
   font-size: 0;
   line-height: 0;
+  /* TЗ-24: HTML-text bazaviy rang (hover/is-checked override yuqorida) */
+  color: #86868a;
 }
 .acc-num {
   left: calc(51.6 * var(--dpx, 0.0520833vw));
