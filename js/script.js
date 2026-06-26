@@ -327,10 +327,14 @@ function createSvgText(text, options = {}) {
   const label = document.createElementNS(svgNS, "text");
 
   svg.classList.add("svg-label");
+  // TЗ-15 Qadam A: viewBox design-px (1920-baseline maket-px); tashqi
+  // o'lcham CSS calc(var(--dpx) * X) bilan viewport-bog'liq. SVG attribute
+  // width/height — design-px raqam (eski vw birligi vw'ga moslanmaydigan
+  // brauzerlarda noaniq edi; sof raqam + CSS calc style ustun).
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
-  svg.setAttribute("width", (width / 19.2).toFixed(5) + "vw");
-  svg.setAttribute("height", (height / 19.2).toFixed(5) + "vw");
+  svg.setAttribute("width", String(width));
+  svg.setAttribute("height", String(height));
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("text-rendering", "geometricPrecision");
   svg.style.width = pxToVw(width);
@@ -2907,73 +2911,52 @@ function initDateCalendarGlobalHandlers() {
 // Figma: подписи сайдбара — Sora 400 20px (латиница в Sora, кириллица в Roboto)
 const DASH_NAV_TEXT_FAMILY = "'Sora', 'Onest', sans-serif";
 
+// TЗ-17 2-PILOT (sidebar HTML-text): TЗ-16 PILOT naqshi bilan teng yondashish.
+// Color CSS dan keladi (parent .snav-btn.active matn rangi qoldiriladi).
+// Pipe `|` bor → ko'p qator (`\n` + `white-space: pre-line`, .snav-bell-text
+// uchun majburiy — Figma 3 qatorda); pipe yo'q — single line. Multiline
+// keep: white-space: pre-line. ls: 0 (sidebar spec'larda yo'q).
+function _renderSidebarHtmlEl(el, size, weight, lineHeight, anchor) {
+  const raw = el.dataset.text || el.textContent.trim();
+  if (!raw) return;
+  const lines = raw
+    .split("|")
+    .map(function (s) {
+      return s.trim();
+    })
+    .filter(Boolean);
+  const text = lines.join("\n");
+  const key = [text, size, weight, lineHeight, anchor || "start"].join("|");
+  if (el.dataset.sidebarHtmlKey === key) return;
+  el.textContent = text;
+  el.dataset.sidebarHtmlKey = key;
+  el.dataset.text = raw;
+  const dpxCalc = function (n) {
+    return "calc(" + n + " * var(--dpx, 0.0520833vw))";
+  };
+  el.style.setProperty("font-family", "'Onest', sans-serif", "important");
+  el.style.setProperty("font-size", dpxCalc(size), "important");
+  el.style.setProperty("font-weight", String(weight), "important");
+  el.style.setProperty("line-height", dpxCalc(lineHeight), "important");
+  el.style.setProperty("white-space", "pre-line", "important");
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+  if (anchor === "middle" || anchor === "center") {
+    el.style.setProperty("text-align", "center", "important");
+  }
+}
+
 function renderDashboardStaticText() {
-  // Подписи кнопок сайдбара (центрированный SVG-текст; цвет наследуется из CSS)
+  // Подписи кнопок сайдбара (color CSS dan — .snav-btn.active override)
   document.querySelectorAll(".snav-text").forEach(function (el) {
-    const text = el.dataset.text || el.textContent.trim();
-    el.dataset.text = text;
-    const w = measureTextWidth(text, 20, 400, DASH_NAV_TEXT_FAMILY) + 6;
-    renderElementText(el, {
-      text: text,
-      size: 20,
-      width: w,
-      height: 26,
-      x: w / 2,
-      y: 19,
-      anchor: "middle",
-      weight: 400,
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
-    });
+    _renderSidebarHtmlEl(el, 20, 400, 26, "middle");
   });
-
-  // «Газета «Все Вакансии Нижнего»» — Figma: SemiBold 600 / 24px / line-height 100% / center
+  // «Газета «Все Вакансии Нижнего»» — Figma SemiBold 600/24/lh24/center,
+  // 3 qatorda (pipe-split saqlanadi)
   const bell = document.querySelector(".snav-bell-text");
-  if (bell) {
-    const lines = (bell.dataset.text || bell.textContent || "")
-      .split("|")
-      .map(function (s) {
-        return s.trim();
-      })
-      .filter(Boolean);
-    let bw = 0;
-    lines.forEach(function (l) {
-      bw = Math.max(bw, measureTextWidth(l, 24, 600, DASH_NAV_TEXT_FAMILY));
-    });
-    bw += 6;
-    renderElementText(bell, {
-      text: lines.join(" "),
-      lines: lines,
-      size: 24,
-      width: bw,
-      height: 24 + (lines.length - 1) * 24 + 6,
-      x: bw / 2,
-      y: 21,
-      anchor: "middle",
-      weight: 600,
-      family: DASH_NAV_TEXT_FAMILY,
-      lineHeight: 24,
-      useBitmapText: false,
-    });
-  }
-
-  // «Выйти» — Figma: SemiBold 600 / 24px / line-height 100%
+  if (bell) _renderSidebarHtmlEl(bell, 24, 600, 24, "middle");
+  // «Выйти» — Figma SemiBold 600/24/lh28
   const exit = document.querySelector(".snav-exit-text");
-  if (exit) {
-    const et = exit.dataset.text || exit.textContent.trim();
-    exit.dataset.text = et;
-    const ew = measureTextWidth(et, 24, 600, DASH_NAV_TEXT_FAMILY) + 6;
-    renderElementText(exit, {
-      text: et,
-      size: 24,
-      width: ew,
-      height: 28,
-      y: 21,
-      weight: 600,
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
-    });
-  }
+  if (exit) _renderSidebarHtmlEl(exit, 24, 600, 28);
 
   renderHeroStaticText();
 }
@@ -3024,44 +3007,47 @@ const heroTextSpecs = [
   },
 ];
 
+// TЗ-16 PILOT: HERO matnlari SVG-text → HTML text. Viewport-mustaqil:
+// `font-size: calc(SIZE * --dpx)` resize'da avtomatik. Pipe (`|`) →
+// `\n` + `white-space: pre-line`. measureTextWidth/canvas o'lchov yo'q
+// (brauzer matn-eni hisoblaydi). Docx G7 Firefox «только текст»dan
+// ONGLI og'ish — reyestrga yoziladi (TЗ-16 PILOT — keyingi guruhlarda
+// kengaytirish). Render-key — `data-hero-html-key` (text + spec hash).
+function _renderHeroHtmlEl(el, spec, raw) {
+  const lsPx = spec.ls ? spec.ls * spec.size : 0;
+  // TЗ-16-PILOT-fix-1: pipe-split olib tashlandi — eski SVG-engine mantiqi
+  // qoldig'i (SVG'da auto-wrap yo'q edi). HTML'da brauzer o'zi qator-wrap
+  // qiladi. Pipe `|` bo'sh joyga aylanadi (mavjud bo'lsa); white-space:
+  // normal (default).
+  const text = raw.replace(/\s*\|\s*/g, " ").trim();
+  const key = [spec.selector, text, spec.size, spec.weight, spec.color, spec.lineHeight, lsPx].join("|");
+  if (el.dataset.heroHtmlKey === key) return;
+  el.textContent = text;
+  el.dataset.heroHtmlKey = key;
+  el.dataset.text = raw;
+  const dpxCalc = function (n) {
+    return "calc(" + n + " * var(--dpx, 0.0520833vw))";
+  };
+  el.style.setProperty("font-family", "'Onest', sans-serif", "important");
+  el.style.setProperty("font-size", dpxCalc(spec.size), "important");
+  el.style.setProperty("font-weight", String(spec.weight), "important");
+  el.style.setProperty("color", spec.color, "important");
+  el.style.setProperty("line-height", dpxCalc(spec.lineHeight), "important");
+  el.style.setProperty("white-space", "normal", "important");
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+  if (lsPx) {
+    el.style.setProperty("letter-spacing", dpxCalc(lsPx), "important");
+  } else {
+    el.style.removeProperty("letter-spacing");
+  }
+}
+
 function renderHeroStaticText() {
   heroTextSpecs.forEach(function (spec) {
-    const lsPx = spec.ls ? spec.ls * spec.size : 0;
     document.querySelectorAll(spec.selector).forEach(function (el) {
       const raw = el.dataset.text || el.textContent.trim();
-      el.dataset.text = raw;
-      const lines = raw
-        .split("|")
-        .map(function (s) {
-          return s.trim();
-        })
-        .filter(Boolean);
-      let w = 0;
-      lines.forEach(function (l) {
-        w = Math.max(
-          w,
-          measureTextWidth(l, spec.size, spec.weight, DASH_NAV_TEXT_FAMILY) +
-            lsPx * Math.max(0, l.length - 1),
-        );
-      });
-      w += 4;
-      renderElementText(el, {
-        text: lines.join(" "),
-        lines: lines.length > 1 ? lines : undefined,
-        size: spec.size,
-        width: w,
-        height:
-          Math.ceil(spec.size * 0.82) +
-          (lines.length - 1) * spec.lineHeight +
-          Math.ceil(spec.size * 0.28),
-        y: Math.round(spec.size * 0.82),
-        weight: spec.weight,
-        color: spec.color,
-        family: DASH_NAV_TEXT_FAMILY,
-        lineHeight: spec.lineHeight,
-        letterSpacing: lsPx ? lsPx.toFixed(3) + "px" : undefined,
-        useBitmapText: false,
-      });
+      if (!raw) return;
+      _renderHeroHtmlEl(el, spec, raw);
     });
   });
 }
@@ -3352,46 +3338,87 @@ const midTextSpecs = [
   },
 ];
 
+// TЗ-18 3-PILOT (mid-row HTML-text): hero/sidebar PILOT naqshi.
+// Family stack: spec.family === "figtree" → Figtree+Onest fallback;
+// default → Sora+Onest. Color spec'dan inline-style ga yoziladi (mid-row
+// matn-rangi statik, hover-state yo'q boshlang'ich qatorida). Pipe `|`
+// → `\n` + `white-space: pre-line` (masalan «Количество ссылающихся|
+// сайтов» 2 qator saqlanadi). 6-fix-19 `--ink-w` CSS-var olib tashlandi
+// (vcard-view::after punktir uchun edi — HTML inline-block matn-eni o'zi
+// bilan boshqaradi; agar punktir buzilsa, alohida TЗ bilan to'g'rilash).
+function _renderMidHtmlEl(el, spec) {
+  const raw = el.dataset.text || el.textContent.trim();
+  if (!raw) return;
+  el.dataset.text = raw;
+  const text = raw
+    .split("|")
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean)
+    .join("\n");
+  const family =
+    spec.family === "figtree"
+      ? "'Figtree', 'Onest', sans-serif"
+      : "'Sora', 'Onest', sans-serif";
+  const key = [
+    spec.selector,
+    text,
+    spec.size,
+    spec.weight,
+    spec.color,
+    spec.lineHeight,
+    spec.anchor || "",
+    family,
+  ].join("|");
+  if (el.dataset.midHtmlKey === key) return;
+  el.textContent = text;
+  el.dataset.midHtmlKey = key;
+  const dpxCalc = function (n) {
+    return "calc(" + n + " * var(--dpx, 0.0520833vw))";
+  };
+  el.style.setProperty("font-family", family, "important");
+  el.style.setProperty("font-size", dpxCalc(spec.size), "important");
+  el.style.setProperty("font-weight", String(spec.weight), "important");
+  el.style.setProperty("color", spec.color, "important");
+  el.style.setProperty("line-height", dpxCalc(spec.lineHeight), "important");
+  // TЗ-18-fix-2: SVG-engine'da har element `.svg-label { display: block }`
+  // (blok-oqim) + ichki SVG matn-eni bilan. HTML'da span default `inline`
+  // → margin-top/height ishlamaydi, elementlar yonma-yon tiziladi. FIX:
+  // `display: block` (blok-oqim, vertikal margin-top tiklanadi). `.month-pill`
+  // ISTISNO — CSS `display: flex` (pill-fon matn-eniga moslashadi), tegmaymiz.
+  // nowrap (pipe yo'q → 1 qator) / pre-line (pipe → ataylab ko'p qator).
+  const multiline = raw.indexOf("|") !== -1;
+  // TЗ-18-fix-3: «Май» elementi ИККАЛА klassga ega (month-label month-pill)
+  // → `.month-label:not(.promo-month)` spec ham, `.month-pill` spec ham
+  // ishlaydi. Selektor-tekshiruv yetmaydi (label-spec block qo'yib qolardi).
+  // Element KLASSI bo'yicha: pill bo'lsa display'ni tozalaymiz → CSS flex
+  // (markazlash) hukmron.
+  const isPill = el.classList.contains("month-pill");
+  // TЗ-18-fix-4: .vcard-view strelka bilan yonma-yon (juft-hover) → inline-
+  // block (matn-eniga teng, ::after to'liq so'zni qoplaydi). block bo'lsa
+  // butun foot enini egallab punktir so'zdan kengroq chiqardi.
+  const isViewWord = el.classList.contains("vcard-view");
+  if (isPill) {
+    el.style.removeProperty("display");
+  } else if (isViewWord) {
+    el.style.setProperty("display", "inline-block", "important");
+  } else {
+    el.style.setProperty("display", "block", "important");
+  }
+  el.style.setProperty(
+    "white-space",
+    multiline ? "pre-line" : "nowrap",
+    "important",
+  );
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+  if (spec.anchor === "middle") {
+    el.style.setProperty("text-align", "center", "important");
+  }
+}
+
 function renderMidStaticText() {
   midTextSpecs.forEach(function (spec) {
-    const family =
-      spec.family === "figtree" ? REPORT_TEXT_FAMILY : DASH_NAV_TEXT_FAMILY;
     document.querySelectorAll(spec.selector).forEach(function (el) {
-      const raw = el.dataset.text || el.textContent.trim();
-      if (!raw) return;
-      el.dataset.text = raw;
-      const lines = raw
-        .split("|")
-        .map(function (t) {
-          return t.trim();
-        })
-        .filter(Boolean);
-      let inkW = 0;
-      lines.forEach(function (l) {
-        inkW = Math.max(inkW, measureTextWidth(l, spec.size, spec.weight, family));
-      });
-      const w = inkW + 4;
-      // 6-fix-19: ink-eni CSS-var sifatida — ::after pseudo elementlar
-      // (masalan .vcard-view dotted underline) matn uzunligida cheklash uchun
-      el.style.setProperty("--ink-w", inkW.toFixed(2));
-      renderElementText(el, {
-        text: lines.join(" "),
-        lines: lines.length > 1 ? lines : undefined,
-        size: spec.size,
-        width: w,
-        height:
-          Math.ceil(spec.size * 0.82) +
-          (lines.length - 1) * spec.lineHeight +
-          Math.ceil(spec.size * 0.28),
-        x: spec.anchor === "middle" ? w / 2 : undefined,
-        y: Math.round(spec.size * 0.82),
-        anchor: spec.anchor,
-        weight: spec.weight,
-        color: spec.color,
-        family: family,
-        lineHeight: spec.lineHeight,
-        useBitmapText: false,
-      });
+      _renderMidHtmlEl(el, spec);
     });
   });
 }
@@ -5795,7 +5822,7 @@ function initScrollTop() {
       y: Math.round(24 * 0.82),
       anchor: "middle",
       weight: 400,
-      color: "#F5F2EA",
+      color: "#F8EDD0",
       family: DASH_NAV_TEXT_FAMILY,
       useBitmapText: false,
     });
@@ -9143,6 +9170,10 @@ function initCustomSelect() {
 
 function initFilePath() {
   const input = document.getElementById("filepathInput");
+  // TЗ-20: legacy log-boshqaruv funksiyasi — `filepathInput` vsevn markupida
+  // YO'Q → `input.addEventListener` null-TypeError berib console'ni iflos
+  // qilardi. Null-guard: element yo'q bo'lsa darhol chiqamiz.
+  if (!input) return;
   const clearWrapper = document.getElementById("filepathClearWrapper");
   const clearBtn = document.getElementById("filepathClearBtn");
   const paperclip = document.getElementById("paperclipBtn");
@@ -9516,6 +9547,8 @@ function initFilePath() {
 
 function initImportButton() {
   const btn = document.getElementById("importBtn");
+  // TЗ-20: legacy guard — `importBtn` vsevn markupida yo'q
+  if (!btn) return;
 
   btn.addEventListener("click", async function () {
     if (!state.selectedType) return;
@@ -9760,9 +9793,12 @@ function initGlobalTooltipDismiss() {
 
 function attachLogAreaHandlers() {
   if (logAreaHandlerAttached) return;
-  logAreaHandlerAttached = true;
 
   const logArea = document.getElementById("logArea");
+  // TЗ-20: legacy guard — `logArea` vsevn markupida yo'q. Bound-flag faqat
+  // element mavjudligi tasdiqlangach o'rnatiladi.
+  if (!logArea) return;
+  logAreaHandlerAttached = true;
 
   logArea.addEventListener("mouseover", function (e) {
     const wrapper = e.target.closest(
@@ -9983,6 +10019,24 @@ function bindBitmapTextFontRefresh() {
 
 document.addEventListener("DOMContentLoaded", function () {
   updateZoomAwareLines();
+  // TЗ-15 (Qadam A): TЗ-14-fix-1 `location.reload` bekor qilindi. Endi
+  // resize'da `updateZoomAwareLines()` chaqiriladi — `--dpx` yangilanadi
+  // va SVG.style.width = calc(var(--dpx) * X) avtomatik viewport-bog'liq.
+  // Hech qanday init-funksiya qayta chaqirilmaydi (TЗ-13 saboq).
+  // Createsvgtext ichida svg width/height attribute ham design-px sifatida
+  // raqam — viewBox bilan brauzer ichki koordinata sistemasini masshtablaydi.
+  (function _tz15BindResize() {
+    let lastW = window.innerWidth;
+    let t;
+    window.addEventListener("resize", function () {
+      if (window.innerWidth === lastW) return;
+      clearTimeout(t);
+      t = setTimeout(function () {
+        lastW = window.innerWidth;
+        updateZoomAwareLines();
+      }, 100);
+    });
+  })();
   bindBitmapTextFontRefresh();
   initNavTabs();
   initCustomSelect();

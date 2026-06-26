@@ -3555,10 +3555,12 @@ body {
 }
 
 /* 4 стат-элемента: фикс. ширины колонок = реальные интервалы макета */
+/* TЗ-16-PILOT-fix-2: margin-top 26→38dpx (HTML-text refaktordan keyin
+   .hero-para va .hero-stats yopib qolgan edi — masofa qaytarildi). */
 .hero-stats {
   display: flex;
   align-items: flex-start;
-  margin-top: calc(26 * var(--dpx, 0.0520833vw));
+  margin-top: calc(53 * var(--dpx, 0.0520833vw));
   margin-left: calc(2 * var(--dpx, 0.0520833vw));
 }
 
@@ -4056,10 +4058,10 @@ body {
   content: "";
   position: absolute;
   left: 0;
-  /* 6-fix-19: matn-ink eni bilan teng (eski right:0 svg eni + 4dpx
-     zaxira tufayli matn oxiridan oshib turardi). --ink-w'ni
-     renderMidStaticText measureTextWidth bilan o'rnatadi */
-  width: calc(var(--ink-w, 60) * var(--dpx, 0.0520833vw));
+  right: 0;
+  /* TЗ-18-fix-4: HTML refaktordan keyin .vcard-view inline-block (matn-
+     eniga teng) → ::after left:0/right:0 (width:100%) to'liq so'zni qoplaydi.
+     Eski --ink-w (6-fix-19, SVG measureTextWidth) olib tashlandi. */
   top: calc(16.2 * var(--dpx, 0.0520833vw));
   height: calc(1.48 * var(--dpx, 0.0520833vw));
   background: repeating-linear-gradient(
@@ -4620,7 +4622,8 @@ body {
   padding: 0;
   border: none;
   border-radius: calc(18 * var(--dpx, 0.0520833vw));
-  background: rgba(47, 48, 40, 0.5);
+  /* TЗ-19-fix-1: PIL-o'lchangan fon #A19B8C (deyarli solid, iliq kulrang) */
+  background: rgba(161, 155, 140, 0.92);
   cursor: pointer;
   z-index: 40;
   opacity: 0;
@@ -4636,8 +4639,9 @@ body {
   visibility: visible;
 }
 .scroll-top:hover {
-  background: rgba(47, 48, 40, 0.7);
+  background: rgba(140, 135, 122, 0.95);
 }
+/* TЗ-19-fix-1: opacity bekor — matn/strelka SOLID krem #F8EDD0 (PIL) */
 .scroll-top svg {
   display: block;
 }
