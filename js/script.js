@@ -3654,6 +3654,43 @@ function renderResumeCellText(el, text, size) {
   });
 }
 
+// TЗ-21 4-PILOT: desktop resume jadval matni SVG-text → HTML text.
+// Highlight HTML span (`.cell-hl`) bilan (SVG tspan+rect o'rniga). maxW
+// himoya CSS `overflow:hidden + text-overflow:ellipsis` bilan (eski
+// clip-path o'rniga). Pub jadval SVG funksiyalarini saqlaydi (TЗ-22).
+const _dpxCalc = function (n) {
+  return "calc(" + n + " * var(--dpx, 0.0520833vw))";
+};
+function _applyResumeCellStyle(el, size, weight) {
+  el.style.setProperty("font-family", "'Onest', sans-serif", "important");
+  el.style.setProperty("font-size", _dpxCalc(size), "important");
+  el.style.setProperty("font-weight", String(weight), "important");
+  el.style.setProperty("color", RESUME_TEXT_COLOR, "important");
+  el.style.setProperty("line-height", "1", "important");
+  el.style.setProperty("white-space", "nowrap", "important");
+  el.style.setProperty("overflow", "hidden", "important");
+  el.style.setProperty("text-overflow", "ellipsis", "important");
+  el.style.setProperty("display", "block", "important");
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+}
+function renderResumeCellHtml(el, text, size, ranges) {
+  el.dataset.text = text;
+  if (ranges && ranges.length) {
+    let html = "";
+    let cursor = 0;
+    ranges.forEach(function (r) {
+      if (r.start > cursor) html += esc(text.slice(cursor, r.start));
+      html += '<span class="cell-hl">' + esc(text.slice(r.start, r.end)) + "</span>";
+      cursor = r.end;
+    });
+    if (cursor < text.length) html += esc(text.slice(cursor));
+    el.innerHTML = html;
+  } else {
+    el.textContent = text;
+  }
+  _applyResumeCellStyle(el, size, 300);
+}
+
 function initResumeTable() {
   const box = document.getElementById("resumeRows");
   if (!box) return;
@@ -3685,39 +3722,23 @@ function initResumeTable() {
     if (!row) return;
     RESUME_COLS.forEach(function (col) {
       const cell = tr.querySelector(".cell-" + col.key);
-      if (cell) renderResumeCellText(cell, row[col.key], col.size);
+      if (cell) renderResumeCellHtml(cell, row[col.key], col.size, null);
     });
   });
 
-  // заголовок панели и шапка колонок (статичная разметка, data-text)
-  document.querySelectorAll(".resume-title").forEach(function (el) {
-    const t = el.dataset.text;
-    renderElementText(el, {
-      text: t,
-      size: 24.92,
-      width: measureTextWidth(t, 24.92, 400, DASH_NAV_TEXT_FAMILY) + 4,
-      height: 28,
-      y: Math.round(24.92 * 0.82),
-      weight: 400,
-      color: RESUME_TEXT_COLOR,
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
+  // TЗ-21: заголовок панели + шапка колонок HTML-text. Scope —
+  // resume panel (pub panel `.resume-col`'lari TZ-22'gача SVG'da qoladi).
+  const rpanel = document.querySelector(".resume-panel:not(.pub-panel)");
+  if (rpanel) {
+    rpanel.querySelectorAll(".resume-title").forEach(function (el) {
+      el.textContent = el.dataset.text || el.textContent.trim();
+      _applyResumeCellStyle(el, 24.92, 400);
     });
-  });
-  document.querySelectorAll(".resume-col").forEach(function (el) {
-    const t = el.dataset.text;
-    renderElementText(el, {
-      text: t,
-      size: 22,
-      width: measureTextWidth(t, 22, 300, DASH_NAV_TEXT_FAMILY) + 4,
-      height: 25,
-      y: Math.round(22 * 0.82),
-      weight: 300,
-      color: RESUME_TEXT_COLOR,
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
+    rpanel.querySelectorAll(".resume-col").forEach(function (el) {
+      el.textContent = el.dataset.text || el.textContent.trim();
+      _applyResumeCellStyle(el, 22, 300);
     });
-  });
+  }
 }
 
 // ========================================================================
@@ -3955,28 +3976,18 @@ function applyResumeSearch() {
     // шаг 1.6: OR-фильтр по выбранным счетам поверх поиска
     const accOk = !accountFilterSet.size || accountFilterSet.has(row.account);
     tr.style.display = searchOk && accOk ? "" : "none";
+    // TЗ-21: HTML-render (highlight `.cell-hl` span yoki oddiy textContent)
     const nameCell = tr.querySelector(".cell-name");
     const vacCell = tr.querySelector(".cell-vacancy");
-    if (nameCell) {
-      if (nameR.length)
-        renderHighlightedCellText(
-          nameCell,
-          row.name,
-          resumeColSize("name"),
-          nameR,
-        );
-      else renderResumeCellText(nameCell, row.name, resumeColSize("name"));
-    }
-    if (vacCell) {
-      if (vacR.length)
-        renderHighlightedCellText(
-          vacCell,
-          row.vacancy,
-          resumeColSize("vacancy"),
-          vacR,
-        );
-      else renderResumeCellText(vacCell, row.vacancy, resumeColSize("vacancy"));
-    }
+    if (nameCell)
+      renderResumeCellHtml(nameCell, row.name, resumeColSize("name"), nameR);
+    if (vacCell)
+      renderResumeCellHtml(
+        vacCell,
+        row.vacancy,
+        resumeColSize("vacancy"),
+        vacR,
+      );
   });
   // SEL1 (fix-2, docx «и наоборот»): высота страницы изменилась
   // (фильтр/поиск) при открытом попапе — пересчитать spacer/докрутку,
@@ -4371,16 +4382,29 @@ function initPubTable() {
       box.append(tr);
     });
   }
-  // заголовок панели и шапка колонок рендерятся в initResumeTable
-  // (общие классы .resume-title/.resume-col); тут — только ячейки
+  // TЗ-22: pub kataklar HTML-render (TЗ-21 naqshi)
   box.querySelectorAll(".resume-row").forEach(function (tr, i) {
     const row = PUB_ROWS[i];
     if (!row) return;
     PUB_COLS.forEach(function (col) {
       const cell = tr.querySelector(".pcell-" + col.key);
-      if (cell) renderResumeCellText(cell, row[col.key], col.size);
+      if (cell) renderResumeCellHtml(cell, row[col.key], col.size, null);
     });
   });
+  // TЗ-22: pub title + shapka kataklar HTML (.pub-panel scope — resume'dan
+  // ajratilgan, TЗ-21 da bu yer SVG'da qolgan edi)
+  const ppanel = document.querySelector(".pub-panel");
+  if (ppanel) {
+    ppanel.querySelectorAll(".resume-title, .pub-title").forEach(function (el) {
+      if (!el.dataset.text && !el.textContent.trim()) return;
+      el.textContent = el.dataset.text || el.textContent.trim();
+      _applyResumeCellStyle(el, 24.92, 400);
+    });
+    ppanel.querySelectorAll(".resume-col").forEach(function (el) {
+      el.textContent = el.dataset.text || el.textContent.trim();
+      _applyResumeCellStyle(el, 22, 300);
+    });
+  }
 }
 
 // ШАГ 2.2 (P3/P5): фильтр pub-таблицы — ПРЕФИКС display-имени источника
@@ -4440,18 +4464,11 @@ function applyPubSearch() {
       tr.style.display = pubRowMatches(row, q) ? "" : "none";
       const vacRanges = q ? findAllRanges(row.vac, q) : [];
       const urlRanges = q ? findAllRanges(row.url, q) : [];
+      // TЗ-22: HTML-render (highlight `.cell-hl` span yoki oddiy)
       const vacCell = tr.querySelector(".pcell-vac");
       const urlCell = tr.querySelector(".pcell-url");
-      if (vacCell) {
-        if (vacRanges.length)
-          renderHighlightedCellText(vacCell, row.vac, vacSize, vacRanges);
-        else renderResumeCellText(vacCell, row.vac, vacSize);
-      }
-      if (urlCell) {
-        if (urlRanges.length)
-          renderHighlightedCellText(urlCell, row.url, urlSize, urlRanges);
-        else renderResumeCellText(urlCell, row.url, urlSize);
-      }
+      if (vacCell) renderResumeCellHtml(vacCell, row.vac, vacSize, vacRanges);
+      if (urlCell) renderResumeCellHtml(urlCell, row.url, urlSize, urlRanges);
     });
   }
   // шаг 2.4: те же фильтры — и к адаптивным рядам (единое состояние)
@@ -4806,34 +4823,30 @@ function layoutAccPopup(popup) {
   popup.style.setProperty("--acc-date-x", dateX.toFixed(1));
 }
 
+// TЗ-24: popап matni SVG-text → HTML text. RANG inline'da YOZILMAYDI —
+// CSS boshqaradi (`.acc-row:hover`/`.is-checked` → ko'k/quyuq override
+// ishlashi uchun). Font/size/weight/lh inline-calc (viewport-mustaqil).
+function _renderAccTextEl(el, size, weight) {
+  const t = el.dataset.text;
+  if (!t) return;
+  const key = "acc|" + size + "|" + weight + "|" + t;
+  if (el.dataset.accHtmlKey === key) return;
+  el.textContent = t;
+  el.dataset.accHtmlKey = key;
+  el.style.setProperty("font-family", DASH_NAV_TEXT_FAMILY, "important");
+  el.style.setProperty("font-size", _dpxCalc(size), "important");
+  el.style.setProperty("font-weight", String(weight), "important");
+  el.style.setProperty("line-height", _dpxCalc(size), "important");
+  el.style.setProperty("white-space", "nowrap", "important");
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+}
+
 function renderAccPopupTexts() {
   document.querySelectorAll(".acc-popup-title").forEach(function (el) {
-    renderElementText(el, {
-      text: el.dataset.text,
-      size: 22,
-      width:
-        measureTextWidth(el.dataset.text, 22, 300, DASH_NAV_TEXT_FAMILY) + 4,
-      height: 26,
-      y: Math.round(22 * 0.82),
-      weight: 300,
-      color: "#584E4E",
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
-    });
+    _renderAccTextEl(el, 22, 300);
   });
   document.querySelectorAll(".acc-num, .acc-date").forEach(function (el) {
-    renderElementText(el, {
-      text: el.dataset.text,
-      size: 20,
-      width:
-        measureTextWidth(el.dataset.text, 20, 300, DASH_NAV_TEXT_FAMILY) + 4,
-      height: 23,
-      y: Math.round(20 * 0.82),
-      weight: 300,
-      color: "#86868A",
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
-    });
+    _renderAccTextEl(el, 20, 300);
   });
 }
 
@@ -5163,6 +5176,23 @@ function formatPhoneIntl(p) {
 // renderHighlightedCellText (desktop) ning mobile-spec ekvivalenti: kegl
 // makSize*koef bo'lib hisoblanadi, qolgan algoritm aynan (rect+tspan).
 // Pipe-split (lines) qo'llab-quvvatlanmaydi (`.trow-*` 1 qator matn).
+// TЗ-23: tab-view (mobile/planshet) matn SVG-text → HTML text. size/lh
+// dizayn-px@1920 (makSize × koef); font-size: calc(size * --dpx) viewport-
+// mustaqil → resize'da avtomatik. `.cell-hl` highlight TЗ-21 naqshi.
+function _tabHtmlStyle(el, size, weight, color, lh, fam, multiline) {
+  el.style.setProperty("font-family", fam, "important");
+  el.style.setProperty("font-size", _dpxCalc(size), "important");
+  el.style.setProperty("font-weight", String(weight), "important");
+  el.style.setProperty("color", color, "important");
+  el.style.setProperty("line-height", _dpxCalc(lh), "important");
+  el.style.setProperty(
+    "white-space",
+    multiline ? "pre-line" : "nowrap",
+    "important",
+  );
+  el.style.setProperty("text-rendering", "geometricPrecision", "important");
+}
+
 function renderTabHighlightedText(el, makSize, weight, color, koef, family, ranges) {
   const T = koef || TAB_T;
   const text =
@@ -5170,82 +5200,21 @@ function renderTabHighlightedText(el, makSize, weight, color, koef, family, rang
       ? el.dataset.textPhone
       : el.dataset.text;
   if (!text) return;
-  const origText = el.dataset.text;
-  const origTextPhone = el.dataset.textPhone;
   const fam = family || DASH_NAV_TEXT_FAMILY;
   const size = makSize * T;
-  const w = measureTextWidth(text, size, weight, fam) + 4;
-  const baseOpts = {
-    text: text,
-    size: size,
-    width: w,
-    height: Math.ceil(size * 0.82) + Math.ceil(size * 0.28),
-    y: Math.round(size * 0.82),
-    weight: weight,
-    color: color,
-    family: fam,
-    useBitmapText: false,
-  };
-  const key =
-    getSvgTextRenderKey(text, baseOpts) +
-    "hl:" +
-    ranges
-      .map(function (r) {
-        return r.start + "-" + r.end;
-      })
-      .join(",");
-  if (el.dataset.svgTextKey === key && el.firstElementChild) {
-    if (origText !== undefined) el.dataset.text = origText;
-    if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
-    return;
-  }
-
-  const svg = createSvgText(text, baseOpts);
-  const label = svg.querySelector("text");
-  label.style.whiteSpace = "pre";
-  label.textContent = "";
-
-  const k = size / 23;
-  const baseline = baseOpts.y;
-  const rectY = baseline - 0.707 * size - 5 * k;
-  const rectH = baseline + 5 * k - rectY;
-  const clean = function (s) {
-    return s ? measureTextWidth(s, size, weight, fam) - 2 : 0;
-  };
-
-  ranges.forEach(function (r) {
-    const rect = document.createElementNS(svgNS, "rect");
-    rect.setAttribute("x", (clean(text.slice(0, r.start)) - 3 * k).toFixed(2));
-    rect.setAttribute("y", rectY.toFixed(2));
-    rect.setAttribute(
-      "width",
-      (clean(text.slice(r.start, r.end)) + 6 * k).toFixed(2),
-    );
-    rect.setAttribute("height", rectH.toFixed(2));
-    rect.setAttribute("rx", (4 * k).toFixed(2));
-    rect.setAttribute("fill", RESUME_HL_BG);
-    svg.insertBefore(rect, label);
-  });
-
-  function addSpan(t, c) {
-    const tspan = document.createElementNS(svgNS, "tspan");
-    tspan.setAttribute("fill", c);
-    tspan.textContent = t;
-    label.append(tspan);
-  }
+  let html = "";
   let cursor = 0;
   ranges.forEach(function (r) {
-    if (r.start > cursor) addSpan(text.slice(cursor, r.start), color);
-    addSpan(text.slice(r.start, r.end), RESUME_HL_FG);
+    if (r.start > cursor) html += esc(text.slice(cursor, r.start));
+    html += '<span class="cell-hl">' + esc(text.slice(r.start, r.end)) + "</span>";
     cursor = r.end;
   });
-  if (cursor < text.length) addSpan(text.slice(cursor), color);
-
-  el.textContent = "";
-  el.dataset.svgTextKey = key;
-  el.append(svg);
-  if (origText !== undefined) el.dataset.text = origText;
-  if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
+  if (cursor < text.length) html += esc(text.slice(cursor));
+  const key = "hl|" + size + "|" + weight + "|" + color + "|" + fam + "|" + html;
+  if (el.dataset.tabHtmlKey === key) return;
+  el.innerHTML = html;
+  el.dataset.tabHtmlKey = key;
+  _tabHtmlStyle(el, size, weight, color, size, fam, false);
 }
 
 function renderTabText(el, makSize, weight, color, makLh, koef, family) {
@@ -5256,9 +5225,6 @@ function renderTabText(el, makSize, weight, color, makLh, koef, family) {
       ? el.dataset.textPhone
       : el.dataset.text;
   if (!raw) return;
-  // 6-fix-74: original data-text/data-text-phone ni save (render'dan keyin restore)
-  const origText = el.dataset.text;
-  const origTextPhone = el.dataset.textPhone;
   const fam = family || DASH_NAV_TEXT_FAMILY;
   const size = makSize * T;
   const lh = (makLh || makSize * 1.3) * T;
@@ -5268,29 +5234,13 @@ function renderTabText(el, makSize, weight, color, makLh, koef, family) {
       return t.trim();
     })
     .filter(Boolean);
-  let w = 0;
-  lines.forEach(function (l) {
-    w = Math.max(w, measureTextWidth(l, size, weight, fam));
-  });
-  renderElementText(el, {
-    text: lines.join(" "),
-    lines: lines.length > 1 ? lines : undefined,
-    size: size,
-    width: w + 4,
-    height:
-      Math.ceil(size * 0.82) + (lines.length - 1) * lh + Math.ceil(size * 0.28),
-    y: Math.round(size * 0.82),
-    weight: weight,
-    color: color,
-    family: fam,
-    lineHeight: lh,
-    useBitmapText: false,
-  });
-  // 6-fix-74: restore data-text/data-text-phone (renderElementText qayta
-  // yozadi lines.join(" ") bilan; original pipe-text yo'qolmasin va
-  // tab-pub trunc-text har resize'da yangidan o'qilsin).
-  if (origText !== undefined) el.dataset.text = origText;
-  if (origTextPhone !== undefined) el.dataset.textPhone = origTextPhone;
+  const text = lines.join("\n");
+  const multiline = lines.length > 1;
+  const key = size + "|" + weight + "|" + color + "|" + lh + "|" + fam + "|" + text;
+  if (el.dataset.tabHtmlKey === key) return;
+  el.textContent = text;
+  el.dataset.tabHtmlKey = key;
+  _tabHtmlStyle(el, size, weight, color, lh, fam, multiline);
 }
 
 function initTabView() {
@@ -5639,18 +5589,14 @@ function renderTabDigits(el, makSize, color, K, family, weight, tightHeight) {
   const fam = family || TAB_DIGIT_FAMILY;
   const wt = weight || 300;
   const size = makSize * K;
-  const cap = Math.ceil(size * 0.82);
-  renderElementText(el, {
-    text: t,
-    size: size,
-    width: measureTextWidth(t, size, wt, fam) + 4,
-    height: tightHeight ? cap : cap + Math.ceil(size * 0.28),
-    y: cap,
-    weight: wt,
-    color: color,
-    family: fam,
-    useBitmapText: false,
-  });
+  // TЗ-23: HTML-text (sanalar). Arial-stack saqlandi (TAB_DIGIT_FAMILY —
+  // Onest raqamlari keng, 2.4-fix saboq). tightHeight desktop-SVG da box-
+  // bottom = baseline edi → HTML'da line-height:1 + nowrap bilan teng.
+  const key = "dig|" + size + "|" + wt + "|" + color + "|" + fam + "|" + t;
+  if (el.dataset.tabHtmlKey === key) return;
+  el.textContent = t;
+  el.dataset.tabHtmlKey = key;
+  _tabHtmlStyle(el, size, wt, color, size, fam, false);
 }
 
 let tabPubBound = false;
