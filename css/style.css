@@ -4293,7 +4293,8 @@ body {
      1:1 mos). top vertikal markaz: (49.85−30)/2 ≈ 9.9 */
   left: calc(228.04 * var(--dpx, 0.0520833vw));
   right: auto;
-  top: calc(9.9 * var(--dpx, 0.0520833vw));
+  /* TЗ-25 (mijoz pravkasi): ✕ 1px yuqoriga — 9.9→8.9dpx */
+  top: calc(8.9 * var(--dpx, 0.0520833vw));
   width: calc(30 * var(--dpx, 0.0520833vw));
   height: calc(30 * var(--dpx, 0.0520833vw));
   padding: 0;
@@ -4327,14 +4328,15 @@ body {
   left: 50%;
   top: calc(100% + 10.5 * var(--dpx, 0.0520833vw));
   transform: translateX(-50%);
-  padding: calc(8.1 * var(--dpx, 0.0520833vw))
-    calc(18.9 * var(--dpx, 0.0520833vw)) calc(5.9 * var(--dpx, 0.0520833vw));
+  /* TЗ-26: Figma 1:1 — to'g'ri burchak, balandroq plashka, matn 1dpx
+     yuqoriga (padding top 10 / bottom 12 + flex-center) */
+  padding: calc(10 * var(--dpx, 0.0520833vw))
+    calc(18.9 * var(--dpx, 0.0520833vw)) calc(12 * var(--dpx, 0.0520833vw));
   background-color: #bdbbb7;
   background-image: none;
   border: none;
   outline: none;
-  /* TЗ-10-fix6: Figma yumaloq burchak ~4dpx, qora ramka YO'Q */
-  border-radius: calc(4 * var(--dpx, 0.0520833vw));
+  border-radius: 0;
   box-shadow: none;
   white-space: nowrap;
   pointer-events: none;
@@ -4624,13 +4626,14 @@ body {
 
 /* G15: «вверх» — замер ru2 (81×52.6 r18, полупрозрачный rgba(47,48,40,.5):
    контент просвечивает; hover .7 по states-sheet #6B6C65 на #F5F5F5) */
+/* TЗ-28: Figma 1:1 — 80×53dpx, radius 12.2, fon #7C7971, opacity 0.8 */
 .scroll-top {
   position: fixed;
   right: calc(38 * var(--dpx, 0.0520833vw));
   bottom: calc(60 * var(--dpx, 0.0520833vw));
   box-sizing: border-box;
-  width: calc(81 * var(--dpx, 0.0520833vw));
-  height: calc(52.6 * var(--dpx, 0.0520833vw));
+  width: calc(80 * var(--dpx, 0.0520833vw));
+  height: calc(53 * var(--dpx, 0.0520833vw));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4638,9 +4641,8 @@ body {
   gap: calc(4 * var(--dpx, 0.0520833vw));
   padding: 0;
   border: none;
-  border-radius: calc(18 * var(--dpx, 0.0520833vw));
-  /* TЗ-19-fix-1: PIL-o'lchangan fon #A19B8C (deyarli solid, iliq kulrang) */
-  background: rgba(161, 155, 140, 0.92);
+  border-radius: calc(12.2 * var(--dpx, 0.0520833vw));
+  background: #7c7971;
   cursor: pointer;
   z-index: 40;
   opacity: 0;
@@ -4652,20 +4654,25 @@ body {
 }
 
 .scroll-top.is-visible {
-  opacity: 1;
+  opacity: 0.8;
   visibility: visible;
 }
+/* TЗ-28: hover — fon #2F3027, ikona+matn #FFFBEF */
 .scroll-top:hover {
-  background: rgba(140, 135, 122, 0.95);
+  background: #2f3027;
 }
-/* TЗ-19-fix-1: opacity bekor — matn/strelka SOLID krem #F8EDD0 (PIL) */
 .scroll-top svg {
   display: block;
 }
+.scroll-top:hover svg path {
+  fill: #fffbef;
+}
 .scroll-top-text {
   display: block;
-  font-size: 0;
-  line-height: 0;
+  color: #f8edd0;
+}
+.scroll-top:hover .scroll-top-text {
+  color: #fffbef;
 }
 
 /* G13/G14 + TЗ7: логотип-ссылка; hover — плавное замещение default-SVG
@@ -4709,11 +4716,15 @@ a.snav-logo {
 /* выход: hover = контурный вариант (states-sheet; рука над контурным);
    дефолт — залитый, как в макете. Перекраска CSS-правилами поверх
    fill-атрибутов инлайн-SVG */
+/* TЗ-26: hover rang #DD5326 → #FF3F01 (so'z + ikona kontur, mijoz pravkasi) */
 .snav-exit:hover .snav-exit-icon svg rect {
   fill: transparent;
 }
 .snav-exit:hover .snav-exit-icon svg path {
-  fill: #dd5326;
+  fill: #ff3f01;
+}
+.snav-exit:hover .snav-exit-text {
+  color: #ff3f01;
 }
 
 /* ============================================================
@@ -5219,9 +5230,11 @@ body.pub-mode .tstats--pub .tstat,
     width: 15px !important;
     height: 9.5px !important;
   }
-  .scroll-top-text .svg-label {
-    width: 42px !important;
-    height: 15px !important;
+  /* TЗ-28: HTML-text mobil real-px font (vw-calc <800px da kichrayar edi);
+     eski svg-label box 15px balandlik bilan teng. */
+  .scroll-top-text {
+    font-size: 15px !important;
+    line-height: 1 !important;
   }
 
   /* ---- ШАГ 2.4: адаптивная pub-таблица, планшет (tablet-links@4x,

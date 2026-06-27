@@ -5755,23 +5755,14 @@ function initScrollTop() {
   if (!btn) return;
   const txt = btn.querySelector(".scroll-top-text");
   if (txt) {
-    // 6-fix-31: SVG ichida text default anchor="start" (x=0) — chap chetga
-    // yopishib qolar edi. anchor="middle" + x=w/2 → text SVG markazida.
-    const stWidth =
-      measureTextWidth(txt.dataset.text, 24, 400, DASH_NAV_TEXT_FAMILY) + 4;
-    renderElementText(txt, {
-      text: txt.dataset.text,
-      size: 24,
-      width: stWidth,
-      height: 27,
-      x: stWidth / 2,
-      y: Math.round(24 * 0.82),
-      anchor: "middle",
-      weight: 400,
-      color: "#F8EDD0",
-      family: DASH_NAV_TEXT_FAMILY,
-      useBitmapText: false,
-    });
+    // TЗ-28: «вверх» HTML-text (Figma spec — Onest 400/21/lh1). Rang CSS
+    // dan (#F8EDD0 default, hover #FFFBEF) — inline'da yozilmaydi.
+    txt.textContent = txt.dataset.text;
+    txt.style.setProperty("font-family", "'Onest', sans-serif", "important");
+    txt.style.setProperty("font-size", _dpxCalc(21), "important");
+    txt.style.setProperty("font-weight", "400", "important");
+    txt.style.setProperty("line-height", "1", "important");
+    txt.style.setProperty("text-rendering", "geometricPrecision", "important");
   }
   if (scrollTopBound) return;
   scrollTopBound = true;
@@ -5857,14 +5848,20 @@ function renderUiTips(root) {
 // TЗ-10-fix6: Figma screenshot 1:1 — yumaloq burchak (~4dpx) qo'shildi,
 // qora ramka aniq bekor (border:none + outline:none), shadow yo'q,
 // background-color aniq #BDBBB7 (Figma rangi).
+// TЗ-26: Figma 1:1 — TO'G'RI BURCHAK (border-radius 0), BALANDROQ plashka
+// (vertikal padding 8.1/5.9 → 10/12), MATN 1dpx YUQORIGA (flex-center +
+// padding-bottom > padding-top → kontent-box yuqoriga siljiydi). Fon/font
+// (TЗ-10-fix6) saqlandi.
 const UI_TIP_INLINE_STYLE = [
-  "display: block !important",
+  "display: flex !important",
+  "align-items: center !important",
+  "justify-content: center !important",
   "opacity: 1 !important",
   "visibility: visible !important",
   "position: absolute !important",
   "background-color: #BDBBB7 !important",
   "background-image: none !important",
-  "padding: calc(8.1 * var(--dpx, 0.0520833vw)) calc(18.9 * var(--dpx, 0.0520833vw)) calc(5.9 * var(--dpx, 0.0520833vw)) !important",
+  "padding: calc(10 * var(--dpx, 0.0520833vw)) calc(18.9 * var(--dpx, 0.0520833vw)) calc(12 * var(--dpx, 0.0520833vw)) !important",
   "font-family: 'Onest', sans-serif !important",
   "font-weight: 300 !important",
   "font-size: calc(21.6 * var(--dpx, 0.0520833vw)) !important",
@@ -5876,7 +5873,7 @@ const UI_TIP_INLINE_STYLE = [
   "z-index: 9999 !important",
   "border: none !important",
   "outline: none !important",
-  "border-radius: calc(4 * var(--dpx, 0.0520833vw)) !important",
+  "border-radius: 0 !important",
   "box-shadow: none !important",
   "text-decoration: none !important",
 ].join("; ");
@@ -5898,6 +5895,11 @@ function initUiTipHover() {
     if (pos === "above-center") {
       extra =
         "; top: auto !important; bottom: calc(100% + 7 * var(--dpx, 0.0520833vw)) !important; left: 50% !important; transform: translateX(-50%) !important";
+    } else if (pos === "below-right-high") {
+      // TЗ-27: resume-filter-x tooltip 5px yuqoriga (gap 21.8→16.8).
+      // Alohida variant — «Очистить поле» (below-right) tegmasin.
+      extra =
+        "; top: calc(100% + 16.8 * var(--dpx, 0.0520833vw)) !important; bottom: auto !important; left: 50% !important; transform: translateX(calc(-50% + 15.7 * var(--dpx, 0.0520833vw))) !important";
     } else if (pos === "below-right") {
       extra =
         "; top: calc(100% + 21.8 * var(--dpx, 0.0520833vw)) !important; bottom: auto !important; left: 50% !important; transform: translateX(calc(-50% + 15.7 * var(--dpx, 0.0520833vw))) !important";
