@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIAG: font-override (только текст)</title>
+<style>
+  @font-face {
+    font-family: "Onest";
+    font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url("fonts/onest-variable-cyrillic.woff2") format("woff2");
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  }
+  @font-face {
+    font-family: "Onest";
+    font-style: normal; font-weight: 100 900; font-display: swap;
+    src: url("fonts/onest-variable-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F;
+  }
+  body { margin: 24px; background: #f4f2ec; color: #2f3027;
+         font-family: system-ui, sans-serif; }
+  h1 { font-size: 20px; }
+  .verdict { border-radius: 12px; padding: 14px 18px; margin: 12px 0;
+             font-size: 19px; line-height: 1.45; border: 2px solid; }
+  .verdict b { font-size: 21px; }
+  .ok  { background: #e7f5e7; border-color: #2e7d32; }
+  .bad { background: #fdecea; border-color: #c62828; }
+  .neu { background: #fff; border-color: #bbb; font-size: 15px; }
+  .grid { display: grid; grid-template-columns: 230px 1fr; gap: 0;
+          border: 1px solid #bbb; border-radius: 10px; overflow: hidden;
+          background: #fff; max-width: 780px; margin-top: 14px; }
+  .grid > div { padding: 16px; border-bottom: 1px solid #e2e0da;
+                display: flex; align-items: center; }
+  .grid > .lbl { background: #efece4; font-size: 13px; font-weight: 600;
+                 border-right: 1px solid #e2e0da; }
+  .specimen { font-family: "Onest", sans-serif; font-weight: 700;
+              font-size: 48px; line-height: 1.1; white-space: nowrap; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+  <h1>DIAGNOSTIKA — Firefox «только текст» — O'LCHOVLI (DOM / Canvas / SVG-text)</h1>
+  <div id="verdicts">
+    <div class="verdict neu">O'lchanmoqda… (shriftlar yuklanishini kutmoqda)</div>
+  </div>
+
+  <div class="grid">
+    <div class="lbl">1) DOM (Onest @font-face)</div>
+    <div><span class="specimen">Onest&nbsp;&nbsp;Привет</span></div>
+    <div class="lbl">2) Canvas (BITMAP)</div>
+    <div><canvas id="cv" width="760" height="120"></canvas></div>
+    <div class="lbl">3) SVG &lt;text&gt; (reference usuli)</div>
+    <div>
+      <svg width="420" height="66" viewBox="0 0 420 66">
+        <text x="0" y="50" font-family="Onest, sans-serif" font-weight="700"
+              font-size="48" fill="#2f3027">Onest&#160;&#160;Привет</text>
+      </svg>
+    </div>
+  </div>
+
+<script>
+(async function () {
+  const T = "Onest Привет ЖЫ 1234567890";
+  const SIZE = 54, WEIGHT = 700;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const box = document.getElementById("verdicts");
+
+  function measureDOM(family) {
+    const s = document.createElement("span");
+    s.textContent = T;
+    s.style.cssText = "position:absolute;left:-99999px;top:0;white-space:nowrap;" +
+      "visibility:hidden;font-weight:" + WEIGHT + ";font-size:" + SIZE + "px;" +
+      "font-family:" + family;
+    document.body.appendChild(s);
+    const w = s.getBoundingClientRect().width;
+    s.remove();
+    return w;
+  }
+  const ctx = document.createElement("canvas").getContext("2d");
+  function measureCanvas(family) {
+    ctx.font = WEIGHT + " " + SIZE + "px " + family;
+    return ctx.measureText(T).width;
+  }
+  function measureSVG(family) {
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "10"); svg.setAttribute("height", "10");
+    svg.style.cssText = "position:absolute;left:-99999px;top:0;";
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("font-size", SIZE);
+    t.setAttribute("font-weight", WEIGHT);
+    t.setAttribute("font-family", family);
+    t.textContent = T;
+    svg.appendChild(t);
+    document.body.appendChild(svg);
+    const w = t.getComputedTextLength();
+    svg.remove();
+    return w;
+  }
+
+  function verdict(label, wTarget, wSans, wSerif, wMono) {
+    const eq = (a, b) => Math.abs(a - b) < 1;
+    const overridden = eq(wTarget, wSans) || eq(wTarget, wSerif) || eq(wTarget, wMono);
+    const div = document.createElement("div");
+    div.className = "verdict " + (overridden ? "bad" : "ok");
+    div.innerHTML = "<b>" + label + ": " +
+      (overridden ? "❌ O'CHIRILGAN (override almashtiryapti)"
+                  : "✅ ONEST ISHLATILMOQDA (immunitetli)") + "</b><br>" +
+      "<small>en: Onest=" + wTarget.toFixed(1) + " | sans=" + wSans.toFixed(1) +
+      " | serif=" + wSerif.toFixed(1) + " | mono=" + wMono.toFixed(1) + " px</small>";
+    box.appendChild(div);
+    return overridden;
+  }
+
+  try {
+    await Promise.all([
+      document.fonts.load(WEIGHT + " " + SIZE + "px Onest", "Onest"),
+      document.fonts.load(WEIGHT + " " + SIZE + "px Onest", "Привет"),
+    ]);
+    await document.fonts.ready;
+  } catch (e) {}
+
+  box.innerHTML = "";
+
+  const domOver = verdict("1) DOM matn",
+    measureDOM("'Onest', sans-serif"),
+    measureDOM("'__nofont__', sans-serif"),
+    measureDOM("'__nofont__', serif"),
+    measureDOM("'__nofont__', monospace"));
+  const cvOver = verdict("2) CANVAS (bitmap)",
+    measureCanvas("'Onest', sans-serif"),
+    measureCanvas("'__nofont__', sans-serif"),
+    measureCanvas("'__nofont__', serif"),
+    measureCanvas("'__nofont__', monospace"));
+  const svgOver = verdict("3) SVG <text> (reference usuli)",
+    measureSVG("Onest, sans-serif"),
+    measureSVG("__nofont__, sans-serif"),
+    measureSVG("__nofont__, serif"),
+    measureSVG("__nofont__, monospace"));
+
+  const concl = document.createElement("div");
+  const immuneFound = (!cvOver || !svgOver);
+  concl.className = "verdict " + (!domOver ? "neu" : (immuneFound ? "ok" : "bad"));
+  concl.innerHTML = !domOver
+    ? "<b>XULOSA:</b> DOM ham Onest'da — <b>override HOZIR ta'sir qilmayapti</b>. Override'ni to'g'ri yoqib qayta yuklang."
+    : "<b>XULOSA (override YONIQ):</b> DOM=" + (domOver ? "❌buzildi" : "✅OK") +
+      ", Canvas=" + (cvOver ? "❌buzildi" : "✅OK") +
+      ", SVG-text=" + (svgOver ? "❌buzildi" : "✅OK") + ".<br>" +
+      (immuneFound
+        ? "➡️ <b>Immunitetli yo'l TOPILDI</b> (" + (!svgOver ? "SVG-text" : "") +
+          (!svgOver && !cvOver ? " va " : "") + (!cvOver ? "Canvas" : "") +
+          ") — o'shani butun kontentga ishlatamiz."
+        : "➡️ Ikkalasi ham buzildi → yagona yo'l <b>SVG-&lt;path&gt;</b>.");
+  box.appendChild(concl);
+
+  const cv = document.getElementById("cv");
+  const c2 = cv.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = 760 * dpr; cv.height = 120 * dpr;
+  cv.style.width = "760px"; cv.style.height = "120px";
+  c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c2.fillStyle = "#2f3027";
+  c2.font = "700 48px 'Onest', sans-serif";
+  c2.fillText("Onest  Привет", 4, 72);
+})();
+</script>
+</body>
+</html>

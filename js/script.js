@@ -2911,11 +2911,121 @@ function initDateCalendarGlobalHandlers() {
 // Figma: подписи сайдбара — Sora 400 20px (латиница в Sora, кириллица в Roboto)
 const DASH_NAV_TEXT_FAMILY = "'Sora', 'Onest', sans-serif";
 
-// TЗ-17 2-PILOT (sidebar HTML-text): TЗ-16 PILOT naqshi bilan teng yondashish.
-// Color CSS dan keladi (parent .snav-btn.active matn rangi qoldiriladi).
-// Pipe `|` bor → ko'p qator (`\n` + `white-space: pre-line`, .snav-bell-text
-// uchun majburiy — Figma 3 qatorda); pipe yo'q — single line. Multiline
-// keep: white-space: pre-line. ls: 0 (sidebar spec'larda yo'q).
+// ========================================================================
+// TЗ-30: «ТОЛЬКО ТЕКСТ» (Firefox font-override) DETEKTSIYA. Yashirin probe —
+// bir xil matn 'Onest'+monospace fallback vs sof monospace. Onest qo'llansa
+// enlar farq qiladi; «только текст» da @font-face e'tiborga olinmaydi →
+// ikkalasi monospace metrikasi → enlar TENG → staticTextMode=true. Natijaga
+// (renderlangan glif-eni) tayanadi, deklaratsiyaga emas. fonts.ready'dan
+// KEYIN chaqiriladi (Onest yuklangan bo'lsin).
+let staticTextMode = false;
+let _staticProbe = null;
+function detectStaticTextMode() {
+  if (!document.body) return;
+  if (!_staticProbe) {
+    const mk = function (ff) {
+      const s = document.createElement("span");
+      s.textContent = "Жибық123ЫЭ";
+      s.style.cssText =
+        "position:absolute;left:-9999px;top:-9999px;visibility:hidden;" +
+        "white-space:nowrap;font-size:40px;font-weight:400;font-family:" + ff;
+      return s;
+    };
+    const a = mk("'Onest', monospace");
+    const b = mk("monospace");
+    document.body.append(a, b);
+    _staticProbe = { a: a, b: b };
+  }
+  const wa = _staticProbe.a.offsetWidth;
+  const wb = _staticProbe.b.offsetWidth;
+  if (wa > 0 && wb > 0) staticTextMode = Math.abs(wa - wb) < 1;
+}
+
+// TЗ-30: sidebar matnni BITMAP-maska bilan render (mavjud createSvgText +
+// getTextMaskDataUrl/appendBitmapTextMask dvigateli). Matn canvas→PNG-alfa-
+// maska, rect fill=currentColor → element CSS rangi (passiv/aktiv/hover)
+// meros bo'ladi. Inline HTML-stillar tozalanadi → CSS `font-size:0` hukmron.
+function _renderSidebarBitmap(el, lines, size, weight, lineHeight, anchor) {
+  const family = "'Onest', sans-serif";
+  const anc = anchor === "middle" || anchor === "center" ? "middle" : "start";
+  let w = 0;
+  lines.forEach(function (l) {
+    w = Math.max(w, measureTextWidth(l, size, weight, family));
+  });
+  w += 4;
+  const h =
+    Math.ceil(size * 0.82) +
+    (lines.length - 1) * lineHeight +
+    Math.ceil(size * 0.28);
+  const svg = createSvgText(lines.join(" "), {
+    text: lines.join(" "),
+    lines: lines.length > 1 ? lines : undefined,
+    size: size,
+    width: w,
+    height: h,
+    x: anc === "middle" ? w / 2 : 0,
+    y: Math.round(size * 0.82),
+    anchor: anc,
+    weight: weight,
+    family: family,
+    lineHeight: lineHeight,
+    // color berilmaydi → rect fill currentColor (CSS-holatlar saqlanadi)
+  });
+  ["font-family", "font-size", "font-weight", "line-height", "white-space", "text-align", "text-rendering"].forEach(
+    function (p) {
+      el.style.removeProperty(p);
+    },
+  );
+  el.textContent = "";
+  el.append(svg);
+}
+
+// TЗ-31: «только текст» rejimi uchun SVG-<text> (bitmap EMAS). O'lchov
+// bilan aniqlandi — canvas-bitmap ham webfont'ni yo'qotadi (Arial'ga
+// tushadi), ammo reference-verstka fiksatsiyalangan viewBox li .svg-label
+// SVG-qutisi ichida chizadi: shrift o'zgarsa ham quti o'lchami/joyi
+// o'zgarmaydi → reflow yo'q = «статический дизайн». createSvgText'ga
+// useBitmapText:false → .svg-label + <text fill=currentColor> (vw-masshtab).
+// _renderSidebarBitmap saqlanadi (chaqirilmaydi — keyin tozalanadi).
+function _renderSidebarSvgText(el, lines, size, weight, lineHeight, anchor) {
+  const family = "'Onest', sans-serif";
+  const anc = anchor === "middle" || anchor === "center" ? "middle" : "start";
+  let w = 0;
+  lines.forEach(function (l) {
+    w = Math.max(w, measureTextWidth(l, size, weight, family));
+  });
+  w += 4;
+  const h =
+    Math.ceil(size * 0.82) +
+    (lines.length - 1) * lineHeight +
+    Math.ceil(size * 0.28);
+  const svg = createSvgText(lines.join(" "), {
+    text: lines.join(" "),
+    lines: lines.length > 1 ? lines : undefined,
+    size: size,
+    width: w,
+    height: h,
+    x: anc === "middle" ? w / 2 : 0,
+    y: Math.round(size * 0.82),
+    anchor: anc,
+    weight: weight,
+    family: family,
+    lineHeight: lineHeight,
+    useBitmapText: false, // TЗ-31: bitmap emas — .svg-label <text>
+    // color berilmaydi → fill currentColor (CSS-holatlar saqlanadi)
+  });
+  ["font-family", "font-size", "font-weight", "line-height", "white-space", "text-align", "text-rendering"].forEach(
+    function (p) {
+      el.style.removeProperty(p);
+    },
+  );
+  el.textContent = "";
+  el.append(svg);
+}
+
+// TЗ-17 2-PILOT (sidebar HTML-text) + TЗ-30/31 (ikki-rejim): normal=HTML,
+// staticTextMode=SVG-<text>. Color CSS dan (parent .snav-btn.active override).
+// Pipe `|` → ko'p qator. Render-key rejimni hisobga oladi (almashganda re-render).
 function _renderSidebarHtmlEl(el, size, weight, lineHeight, anchor) {
   const raw = el.dataset.text || el.textContent.trim();
   if (!raw) return;
@@ -2925,12 +3035,16 @@ function _renderSidebarHtmlEl(el, size, weight, lineHeight, anchor) {
       return s.trim();
     })
     .filter(Boolean);
-  const text = lines.join("\n");
-  const key = [text, size, weight, lineHeight, anchor || "start"].join("|");
+  const mode = staticTextMode ? "svg" : "html";
+  const key = [mode, lines.join(""), size, weight, lineHeight, anchor || "start"].join("|");
   if (el.dataset.sidebarHtmlKey === key) return;
-  el.textContent = text;
   el.dataset.sidebarHtmlKey = key;
   el.dataset.text = raw;
+  if (staticTextMode) {
+    _renderSidebarSvgText(el, lines, size, weight, lineHeight, anchor);
+    return;
+  }
+  el.textContent = lines.join("\n");
   const dpxCalc = function (n) {
     return "calc(" + n + " * var(--dpx, 0.0520833vw))";
   };
@@ -3007,20 +3121,101 @@ const heroTextSpecs = [
   },
 ];
 
+// TЗ-32: UMUMIY «статический дизайн» SVG-<text> renderer (sidebar TЗ-31
+// mantig'i umumlashtirilgan). createSvgText(useBitmapText:false) →
+// fiksatsiyalangan viewBox li .svg-label (vw-masshtab, layout-statik).
+// Ko'p qator lines massivi bilan (dizayn qator-uzilishlari `|` dan).
+// color berilsa fill=color, aks holda currentColor. Parent'ga font-size:0
+// (svg-child baseline-bo'sh joyi yo'q); display TEGILMAYDI (element-specific).
+function _renderStaticSvgEl(el, opts) {
+  const lines =
+    opts.lines && opts.lines.length ? opts.lines : [opts.text || ""];
+  const size = opts.size;
+  const weight = opts.weight;
+  const family = opts.family || "'Onest', sans-serif";
+  const lineHeight = opts.lineHeight || size;
+  const anc =
+    opts.anchor === "middle" || opts.anchor === "center"
+      ? "middle"
+      : opts.anchor === "end"
+        ? "end"
+        : "start";
+  let w = 0;
+  lines.forEach(function (l) {
+    w = Math.max(w, measureTextWidth(l, size, weight, family));
+  });
+  w += 4;
+  const h =
+    Math.ceil(size * 0.82) +
+    (lines.length - 1) * lineHeight +
+    Math.ceil(size * 0.28);
+  const svgOpts = {
+    text: lines.join(" "),
+    lines: lines.length > 1 ? lines : undefined,
+    size: size,
+    width: w,
+    height: h,
+    x: anc === "middle" ? w / 2 : 0,
+    y: Math.round(size * 0.82),
+    anchor: anc,
+    weight: weight,
+    family: family,
+    lineHeight: lineHeight,
+    useBitmapText: false,
+  };
+  if (opts.color) svgOpts.color = opts.color;
+  if (opts.letterSpacing) svgOpts.letterSpacing = opts.letterSpacing;
+  const svg = createSvgText(lines.join(" "), svgOpts);
+  ["font-family", "white-space", "text-align", "letter-spacing", "color", "text-rendering"].forEach(
+    function (p) {
+      el.style.removeProperty(p);
+    },
+  );
+  el.style.setProperty("font-size", "0", "important");
+  el.style.setProperty("line-height", "0", "important");
+  el.textContent = "";
+  el.append(svg);
+}
+
 // TЗ-16 PILOT: HERO matnlari SVG-text → HTML text. Viewport-mustaqil:
 // `font-size: calc(SIZE * --dpx)` resize'da avtomatik. Pipe (`|`) →
 // `\n` + `white-space: pre-line`. measureTextWidth/canvas o'lchov yo'q
 // (brauzer matn-eni hisoblaydi). Docx G7 Firefox «только текст»dan
 // ONGLI og'ish — reyestrga yoziladi (TЗ-16 PILOT — keyingi guruhlarda
 // kengaytirish). Render-key — `data-hero-html-key` (text + spec hash).
+// TЗ-32: staticTextMode=true → SVG-<text> (dizayn `|` qator-uzilishlari).
 function _renderHeroHtmlEl(el, spec, raw) {
   const lsPx = spec.ls ? spec.ls * spec.size : 0;
+  // TЗ-32: «статический дизайн» — dizayn qator-uzilishlari `|` dan (hero-para
+  // 5 qator, boshqalar 1). Rang spec.color (mid/hero'da hover-holat yo'q).
+  if (staticTextMode) {
+    const svgLines = raw
+      .split("|")
+      .map(function (s) {
+        return s.trim();
+      })
+      .filter(Boolean);
+    const skey = ["svg", spec.selector, svgLines.join(""), spec.size, spec.weight, spec.color].join("|");
+    if (el.dataset.heroHtmlKey === skey) return;
+    el.dataset.heroHtmlKey = skey;
+    el.dataset.text = raw;
+    _renderStaticSvgEl(el, {
+      lines: svgLines,
+      size: spec.size,
+      weight: spec.weight,
+      color: spec.color,
+      family: "'Onest', sans-serif",
+      lineHeight: spec.lineHeight,
+      letterSpacing: lsPx ? lsPx.toFixed(3) + "px" : undefined,
+    });
+    return;
+  }
   // TЗ-16-PILOT-fix-1: pipe-split olib tashlandi — eski SVG-engine mantiqi
   // qoldig'i (SVG'da auto-wrap yo'q edi). HTML'da brauzer o'zi qator-wrap
   // qiladi. Pipe `|` bo'sh joyga aylanadi (mavjud bo'lsa); white-space:
   // normal (default).
   const text = raw.replace(/\s*\|\s*/g, " ").trim();
-  const key = [spec.selector, text, spec.size, spec.weight, spec.color, spec.lineHeight, lsPx].join("|");
+  const key = ["html", spec.selector, text, spec.size, spec.weight, spec.color, spec.lineHeight, lsPx].join("|");
   if (el.dataset.heroHtmlKey === key) return;
   el.textContent = text;
   el.dataset.heroHtmlKey = key;
@@ -3350,16 +3545,42 @@ function _renderMidHtmlEl(el, spec) {
   const raw = el.dataset.text || el.textContent.trim();
   if (!raw) return;
   el.dataset.text = raw;
+  const family =
+    spec.family === "figtree"
+      ? "'Figtree', 'Onest', sans-serif"
+      : "'Sora', 'Onest', sans-serif";
+  // TЗ-32: «статический дизайн» — SVG-<text> (dizayn `|` qator-uzilishlari).
+  // Rang spec.color (mid-row'da hover/active holat yo'q). .month-pill flex,
+  // .vcard-view inline-block CSS-display saqlanadi (_renderStaticSvgEl
+  // display'ga tegmaydi).
+  if (staticTextMode) {
+    const svgLines = raw
+      .split("|")
+      .map(function (s) {
+        return s.trim();
+      })
+      .filter(Boolean);
+    const skey = ["svg", spec.selector, svgLines.join(""), spec.size, spec.weight, spec.color, spec.anchor || "", family].join("|");
+    if (el.dataset.midHtmlKey === skey) return;
+    el.dataset.midHtmlKey = skey;
+    _renderStaticSvgEl(el, {
+      lines: svgLines,
+      size: spec.size,
+      weight: spec.weight,
+      color: spec.color,
+      family: family,
+      lineHeight: spec.lineHeight,
+      anchor: spec.anchor,
+    });
+    return;
+  }
   const text = raw
     .split("|")
     .map(function (s) { return s.trim(); })
     .filter(Boolean)
     .join("\n");
-  const family =
-    spec.family === "figtree"
-      ? "'Figtree', 'Onest', sans-serif"
-      : "'Sora', 'Onest', sans-serif";
   const key = [
+    "html",
     spec.selector,
     text,
     spec.size,
@@ -3675,6 +3896,46 @@ function _applyResumeCellStyle(el, size, weight) {
 }
 function renderResumeCellHtml(el, text, size, ranges) {
   el.dataset.text = text;
+  // TЗ-33: «статический дизайн» — SVG-<text>. Highlight (oranj plashka)
+  // uchun ESKI SVG-dvigatel qayta ishlatiladi (renderHighlightedCellText,
+  // useBitmapText:false allaqachon ichida). maxW-qisqartirish: CSS
+  // text-overflow SVG'da ishlamaydi → measure-loop bilan «…» (o'lchov va
+  // render bir xil shriftda — fallback bo'lsa ham mos tushadi).
+  if (staticTextMode) {
+    if (ranges && ranges.length) {
+      delete el.dataset.cellSvgKey;
+      renderHighlightedCellText(el, text, size, ranges);
+      return;
+    }
+    const fam = DASH_NAV_TEXT_FAMILY;
+    let display = String(text);
+    const maxW = parseFloat(el.dataset.maxw || "0");
+    if (maxW > 0 && measureTextWidth(display, size, 300, fam) + 4 > maxW) {
+      while (
+        display.length > 1 &&
+        measureTextWidth(display + "…", size, 300, fam) + 4 > maxW
+      ) {
+        display = display.slice(0, -1);
+      }
+      display += "…";
+    }
+    const skey = ["svg", display, size].join("|");
+    if (el.dataset.cellSvgKey === skey && el.firstElementChild) return;
+    el.dataset.cellSvgKey = skey;
+    delete el.dataset.svgTextKey;
+    _renderStaticSvgEl(el, {
+      lines: [display],
+      size: size,
+      weight: 300,
+      color: RESUME_TEXT_COLOR,
+      family: fam,
+    });
+    return;
+  }
+  // html-rejim: static-qoldiq kalitlarni tozalaymiz (rejim almashganda
+  // highlight/plain SVG kalitlari eski holatni skip qildirmasin)
+  delete el.dataset.cellSvgKey;
+  delete el.dataset.svgTextKey;
   if (ranges && ranges.length) {
     let html = "";
     let cursor = 0;
@@ -3689,6 +3950,29 @@ function renderResumeCellHtml(el, text, size, ranges) {
     el.textContent = text;
   }
   _applyResumeCellStyle(el, size, 300);
+}
+
+// TЗ-33: jadval sarlavha/shapka yorlig'i — dual-mode kichik wrapper.
+// static → _renderStaticSvgEl (rang RESUME_TEXT_COLOR, qisqartirish yo'q);
+// html → textContent + _applyResumeCellStyle (hozirgidek).
+function _renderTableLabel(el, size, weight) {
+  const t = el.dataset.text || el.textContent.trim();
+  if (!t) return;
+  const key = [staticTextMode ? "svg" : "html", t, size, weight].join("|");
+  if (el.dataset.tblLabelKey === key) return;
+  el.dataset.tblLabelKey = key;
+  if (staticTextMode) {
+    _renderStaticSvgEl(el, {
+      lines: [t],
+      size: size,
+      weight: weight,
+      color: RESUME_TEXT_COLOR,
+      family: DASH_NAV_TEXT_FAMILY,
+    });
+    return;
+  }
+  el.textContent = t;
+  _applyResumeCellStyle(el, size, weight);
 }
 
 function initResumeTable() {
@@ -3710,6 +3994,8 @@ function initResumeTable() {
           " * var(--dpx, 0.0520833vw))";
         cell.style.maxWidth =
           "calc(" + col.maxW + " * var(--dpx, 0.0520833vw))";
+        // TЗ-33: static-rejim SVG-qisqartirish uchun maxW design-px
+        cell.dataset.maxw = String(col.maxW);
         cell.dataset.text = row[col.key];
         tr.append(cell);
       });
@@ -3726,17 +4012,14 @@ function initResumeTable() {
     });
   });
 
-  // TЗ-21: заголовок панели + шапка колонок HTML-text. Scope —
-  // resume panel (pub panel `.resume-col`'lari TZ-22'gача SVG'da qoladi).
+  // TЗ-21/33: заголовок панели + шапка колонок — dual-mode wrapper.
   const rpanel = document.querySelector(".resume-panel:not(.pub-panel)");
   if (rpanel) {
     rpanel.querySelectorAll(".resume-title").forEach(function (el) {
-      el.textContent = el.dataset.text || el.textContent.trim();
-      _applyResumeCellStyle(el, 24.92, 400);
+      _renderTableLabel(el, 24.92, 400);
     });
     rpanel.querySelectorAll(".resume-col").forEach(function (el) {
-      el.textContent = el.dataset.text || el.textContent.trim();
-      _applyResumeCellStyle(el, 22, 300);
+      _renderTableLabel(el, 22, 300);
     });
   }
 }
@@ -4376,6 +4659,8 @@ function initPubTable() {
           " * var(--dpx, 0.0520833vw))";
         cell.style.maxWidth =
           "calc(" + col.maxW + " * var(--dpx, 0.0520833vw))";
+        // TЗ-33: static-rejim SVG-qisqartirish uchun maxW design-px
+        cell.dataset.maxw = String(col.maxW);
         cell.dataset.text = row[col.key];
         tr.append(cell);
       });
@@ -4391,18 +4676,14 @@ function initPubTable() {
       if (cell) renderResumeCellHtml(cell, row[col.key], col.size, null);
     });
   });
-  // TЗ-22: pub title + shapka kataklar HTML (.pub-panel scope — resume'dan
-  // ajratilgan, TЗ-21 da bu yer SVG'da qolgan edi)
+  // TЗ-22/33: pub title + shapka — dual-mode wrapper (.pub-panel scope)
   const ppanel = document.querySelector(".pub-panel");
   if (ppanel) {
     ppanel.querySelectorAll(".resume-title, .pub-title").forEach(function (el) {
-      if (!el.dataset.text && !el.textContent.trim()) return;
-      el.textContent = el.dataset.text || el.textContent.trim();
-      _applyResumeCellStyle(el, 24.92, 400);
+      _renderTableLabel(el, 24.92, 400);
     });
     ppanel.querySelectorAll(".resume-col").forEach(function (el) {
-      el.textContent = el.dataset.text || el.textContent.trim();
-      _applyResumeCellStyle(el, 22, 300);
+      _renderTableLabel(el, 22, 300);
     });
   }
 }
@@ -4829,10 +5110,22 @@ function layoutAccPopup(popup) {
 function _renderAccTextEl(el, size, weight) {
   const t = el.dataset.text;
   if (!t) return;
-  const key = "acc|" + size + "|" + weight + "|" + t;
+  // TЗ-33: mode-prefiks — rejim almashganda qayta chiziladi
+  const key =
+    (staticTextMode ? "svg|" : "acc|") + size + "|" + weight + "|" + t;
   if (el.dataset.accHtmlKey === key) return;
-  el.textContent = t;
   el.dataset.accHtmlKey = key;
+  if (staticTextMode) {
+    // color BERILMAYDI → currentColor (tanlangan=ko'k/hover CSS'dan meros)
+    _renderStaticSvgEl(el, {
+      lines: [t],
+      size: size,
+      weight: weight,
+      family: DASH_NAV_TEXT_FAMILY,
+    });
+    return;
+  }
+  el.textContent = t;
   el.style.setProperty("font-family", DASH_NAV_TEXT_FAMILY, "important");
   el.style.setProperty("font-size", _dpxCalc(size), "important");
   el.style.setProperty("font-weight", String(weight), "important");
@@ -5757,12 +6050,27 @@ function initScrollTop() {
   if (txt) {
     // TЗ-28: «вверх» HTML-text (Figma spec — Onest 400/21/lh1). Rang CSS
     // dan (#F8EDD0 default, hover #FFFBEF) — inline'da yozilmaydi.
-    txt.textContent = txt.dataset.text;
-    txt.style.setProperty("font-family", "'Onest', sans-serif", "important");
-    txt.style.setProperty("font-size", _dpxCalc(21), "important");
-    txt.style.setProperty("font-weight", "400", "important");
-    txt.style.setProperty("line-height", "1", "important");
-    txt.style.setProperty("text-rendering", "geometricPrecision", "important");
+    // TЗ-33: static-rejimda SVG-<text>, color yo'q → currentColor (hover
+    // rangi ishlashda davom etadi). Mode-prefiksli render-key.
+    const stKey = (staticTextMode ? "svg|" : "html|") + txt.dataset.text;
+    if (txt.dataset.stKey !== stKey) {
+      txt.dataset.stKey = stKey;
+      if (staticTextMode) {
+        _renderStaticSvgEl(txt, {
+          lines: [txt.dataset.text],
+          size: 21,
+          weight: 400,
+          family: "'Onest', sans-serif",
+        });
+      } else {
+        txt.textContent = txt.dataset.text;
+        txt.style.setProperty("font-family", "'Onest', sans-serif", "important");
+        txt.style.setProperty("font-size", _dpxCalc(21), "important");
+        txt.style.setProperty("font-weight", "400", "important");
+        txt.style.setProperty("line-height", "1", "important");
+        txt.style.setProperty("text-rendering", "geometricPrecision", "important");
+      }
+    }
   }
   if (scrollTopBound) return;
   scrollTopBound = true;
@@ -9958,6 +10266,9 @@ function bindBitmapTextFontRefresh() {
   bitmapTextFontRefreshBound = true;
   document.fonts.ready.then(function () {
     if (textRenderMode !== "bitmap") return;
+    // TЗ-30: font yuklangach «только текст» rejimini aniqlaymiz; flag
+    // o'zgarsa renderStaticText sidebar'ni bitmap bilan qayta chizadi.
+    detectStaticTextMode();
     bitmapTextFontVersion += 1;
     bitmapTextMaskCache.clear();
     renderStaticText();
