@@ -4224,7 +4224,9 @@ body {
   left: calc(1344 * var(--dpx, 0.0520833vw));
 }
 .rcol-7 {
-  left: calc(1601.5 * var(--dpx, 0.0520833vw));
+  /* TЗ-34: «ДАТА СЧЁТА» sarlavhasi ustun (cell-accountDate) bilan tekislandi
+     — +10 design-px o'ng siljish bartaraf (1601.5 → 1591.5) */
+  left: calc(1591.5 * var(--dpx, 0.0520833vw));
 }
 
 .resume-rows {
